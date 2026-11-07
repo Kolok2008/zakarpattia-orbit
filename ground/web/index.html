@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Zakarpattia Orbit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --spruce:#0E2620; --moss:#2F4A3A; --lichen:#D8DEC8; --lichen-dim:#9FAA94;
+  --ember:#E4572E; --amber:#E9A23B; --fresh:#7FB069;
+  --line:rgba(216,222,200,.14); --accent:var(--fresh);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--spruce);color:var(--lichen);font:15px/1.5 Manrope,system-ui,sans-serif}
+#map{position:fixed;inset:0;background:var(--moss)}
+.leaflet-container{font:inherit;background:var(--moss)}
+.leaflet-tile-container img{outline:1px solid transparent}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--lichen);outline-offset:2px}
+
+/* ---------- panel ---------- */
+.panel{position:fixed;top:20px;left:20px;bottom:20px;width:420px;z-index:600;display:flex;flex-direction:column;gap:22px;
+  padding:22px 26px 22px;overflow-y:auto;overscroll-behavior:contain;background:rgba(14,38,32,.93);backdrop-filter:blur(8px);
+  border-left:4px solid var(--accent);border-radius:4px 14px 14px 4px;transition:border-color .6s}
+.panel>*{flex-shrink:0}
+.brand{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand b{font:700 15px/1 Unbounded,sans-serif}
+.brand-r{display:flex;align-items:center;gap:12px}
+.brand time{color:var(--lichen-dim);font-size:13px;font-variant-numeric:tabular-nums}
+.lang{display:inline-flex;border:1px solid rgba(216,222,200,.3);border-radius:999px;overflow:hidden}
+.lang button{border:0;background:none;padding:3px 9px;font-size:12px;cursor:pointer;color:var(--lichen-dim)}
+.lang button[aria-pressed="true"]{background:var(--lichen);color:var(--spruce);font-weight:700}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-top:-6px;border-radius:12px;background:rgba(216,222,200,.07)}
+.tabs button{border:0;background:none;border-radius:9px;padding:8px 6px;font:500 13px/1.2 Unbounded,sans-serif;cursor:pointer;color:var(--lichen-dim)}
+.tabs button[aria-selected="true"]{background:var(--spruce);color:var(--lichen);box-shadow:inset 0 0 0 1px var(--line)}
+.view{display:flex;flex-direction:column;gap:22px}
+.view>*{flex-shrink:0}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:-8px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:999px;background:rgba(216,222,200,.08);font-size:12.5px}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--lichen-dim)}
+.chip i.on{background:var(--fresh);box-shadow:0 0 0 3px rgba(127,176,105,.25)}
+.chip i.sim{background:var(--amber)}
+.season{display:flex;gap:10px;align-items:flex-start;margin-top:-10px;font-size:13px;color:var(--lichen-dim)}
+.season b{flex-shrink:0;padding:2px 9px;border-radius:999px;font-size:12px;color:var(--spruce);background:var(--fresh)}
+.season b.medium{background:var(--amber)}
+.season b.high{background:var(--ember)}
+
+h1.title{margin:0;font:700 clamp(28px,2.7vw,36px)/1.06 Unbounded,sans-serif;color:var(--accent);overflow-wrap:anywhere;transition:color .6s}
+.lead{margin:10px 0 0;color:var(--lichen-dim)}
+
+/* phases */
+.phases{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:16px}
+.phases span{height:5px;border-radius:3px;background:rgba(216,222,200,.15)}
+.phases span.done{background:var(--lichen-dim)}
+.phases span.now{background:var(--accent)}
+.phase-label{display:flex;justify-content:space-between;margin-top:7px;font-size:13px;color:var(--lichen-dim)}
+.phase-label b{color:var(--lichen);font-weight:700}
+
+/* telemetry */
+.tele{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-radius:10px;overflow:hidden}
+.tele div{background:var(--spruce);padding:10px 12px;min-width:0}
+.tele span{display:block;font-size:12px;color:var(--lichen-dim);white-space:nowrap}
+.tele b{display:block;font:500 18px/1.35 Unbounded,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tele small{font:400 12px Manrope,sans-serif;color:var(--lichen-dim);margin-left:2px}
+.tele b.low{color:var(--amber)}
+
+/* sections */
+h2.sec{margin:0 0 10px;font:500 15px/1.3 Unbounded,sans-serif}
+h2.sec small{display:block;margin-top:3px;font:400 13px Manrope,sans-serif;color:var(--lichen-dim)}
+.sensors h2.sec small{display:inline;margin:0 0 0 6px}
+.sense{display:grid;grid-template-columns:1fr 96px;align-items:center;gap:4px 14px;padding:9px 0;border-top:1px solid var(--line)}
+.sense:last-of-type{border-bottom:1px solid var(--line)}
+.sense span{font-size:13px;color:var(--lichen-dim)}
+.sense b{display:block;font:500 19px/1.3 Unbounded,sans-serif;font-variant-numeric:tabular-nums}
+.sense b.ember{color:var(--ember)}
+.sense svg{width:96px;height:30px;overflow:visible}
+.sense path{fill:none;stroke:var(--lichen-dim);stroke-width:1.5;stroke-linejoin:round}
+.sense path.ember{stroke:var(--ember)}
+.note{margin:10px 0 0;font-size:13px;color:var(--amber)}
+
+/* verdict */
+.verdict{border-radius:10px;padding:18px 18px 16px;background:rgba(216,222,200,.06);border:1px solid var(--line)}
+.verdict h3{margin:0;font:700 26px/1.1 Unbounded,sans-serif}
+.verdict p{margin:8px 0 0;color:var(--lichen-dim)}
+.meter{margin-top:14px;height:6px;border-radius:3px;background:rgba(216,222,200,.15)}
+.meter i{display:block;height:100%;border-radius:3px}
+.meter-label{display:flex;justify-content:space-between;margin-top:6px;font-size:13px;color:var(--lichen-dim)}
+.meter-label b{color:var(--lichen)}
+.verdict ul{margin:12px 0 0;padding-left:18px;color:var(--lichen-dim);font-size:13.5px}
+.verdict li{margin-bottom:3px}
+.verdict.reveal{animation:reveal .9s cubic-bezier(.2,.7,.2,1) both}
+@keyframes reveal{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+
+/* places */
+.places-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.places-head h2{margin:0}
+.places-head.wrap{flex-wrap:wrap;align-items:flex-end}
+.places-head.wrap h2{flex:1 1 200px}
+.btn{border:1px solid rgba(216,222,200,.35);background:transparent;border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){background:rgba(216,222,200,.08)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--lichen);color:var(--spruce);border-color:var(--lichen);font-weight:700}
+.btn.primary:hover:not(:disabled){background:#fff}
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.place{display:grid;grid-template-columns:12px 1fr auto;gap:2px 12px;align-items:start;padding:12px 2px;border-bottom:1px solid var(--line)}
+.place .dot{width:10px;height:10px;margin-top:6px;border-radius:50%;background:#F2C1AE}
+.place .dot.c{background:var(--ember)}
+.place .go{all:unset;cursor:pointer;min-width:0;border-radius:4px}
+.place .go:focus-visible{outline:2px solid var(--lichen);outline-offset:3px}
+.place .s{display:block;font-size:14px;font-weight:700}
+.place .m{display:block;font-size:12.5px;color:var(--lichen-dim)}
+.place .v{display:block;font-size:12.5px;font-weight:700;margin-top:2px}
+.place .t{font-size:12.5px;color:var(--lichen-dim);text-align:right;white-space:nowrap}
+.place .act{grid-column:2/4;margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.place .act small{font-size:12px;color:var(--amber)}
+.place.active{background:rgba(216,222,200,.05)}
+.badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.badge{font-size:11.5px;line-height:1.3;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--lichen-dim)}
+.badge.often{border-color:rgba(233,162,59,.5);color:var(--amber)}
+.badge.first{border-color:rgba(228,87,46,.55);color:#F08C6C}
+.badge.high{background:var(--ember);border-color:var(--ember);color:var(--spruce);font-weight:700}
+.badge.low{opacity:.75}
+.empty{color:var(--lichen-dim);font-size:14px;margin:0;padding:12px 0}
+.msg{font-size:13px;margin:8px 0 0;color:var(--lichen-dim)}
+.msg.err{color:var(--amber)}
+
+/* log */
+.log li{display:grid;grid-template-columns:44px 1fr auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.log time{color:var(--lichen-dim);font-variant-numeric:tabular-nums}
+.log b{font-weight:700}
+.log .m{grid-column:2/4;color:var(--lichen-dim);font-size:12.5px}
+.log .c{color:var(--lichen-dim);font-variant-numeric:tabular-nums}
+
+/* calendar */
+.cal-intro{margin:-8px 0 0;color:var(--lichen-dim);font-size:14px}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font-family:Manrope,sans-serif;fill:var(--lichen-dim);font-size:10px}
+.chart .ax{stroke:rgba(216,222,200,.28);stroke-width:1}
+.chart .grid{stroke:rgba(216,222,200,.08);stroke-width:1}
+.seg{display:inline-flex;border:1px solid rgba(216,222,200,.3);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:none;padding:4px 11px;font-size:12.5px;cursor:pointer;color:var(--lichen-dim)}
+.seg button[aria-pressed="true"]{background:var(--lichen);color:var(--spruce);font-weight:700}
+.key{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px;color:var(--lichen-dim)}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.key i{display:inline-block;width:16px;height:0;border-top:2px solid}
+.key i.band{height:9px;border:0;background:rgba(127,176,105,.28);border-radius:2px}
+.key i.dot{width:8px;height:8px;border:0;border-radius:50%;background:var(--ember)}
+.key i.bar{width:10px;height:10px;border:0;background:rgba(216,222,200,.35);border-radius:2px}
+.key i.win{width:12px;height:10px;border:0;background:rgba(233,162,59,.25);border-radius:2px}
+.cap{margin:8px 0 0;font-size:12.5px;color:var(--lichen-dim)}
+.ramp{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--lichen-dim)}
+.ramp i{flex:1;height:8px;border-radius:4px;max-width:180px}
+.check{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:10px;overflow:hidden}
+.check div{background:var(--spruce);padding:11px 13px}
+.check span{display:block;font-size:12px;color:var(--lichen-dim)}
+.check b{display:block;font:500 19px/1.3 Unbounded,sans-serif;font-variant-numeric:tabular-nums}
+.check p{grid-column:1/3;margin:0;background:var(--spruce);padding:11px 13px;font-size:13px;color:var(--lichen-dim)}
+.insights{margin:0;padding-left:18px;font-size:14px}
+.insights li{margin-bottom:7px}
+.insights li::marker{color:var(--amber)}
+.cal-empty{border:1px dashed rgba(216,222,200,.3);border-radius:10px;padding:16px;color:var(--lichen-dim);font-size:14px}
+.cal-empty code{color:var(--lichen);font-size:13px}
+
+/* map marks */
+.base{width:20px;height:20px;border-radius:4px;background:var(--lichen);border:3px solid var(--spruce);transform:rotate(45deg);transition:background .3s}
+.base.busy{background:var(--fresh);box-shadow:0 0 0 4px rgba(127,176,105,.35)}
+.spot{width:14px;height:14px;border-radius:50%;background:#F2C1AE;border:2px solid #fff}
+.spot.c{width:18px;height:18px;background:var(--ember)}
+.spot.out{opacity:.6}
+.spot.target{animation:pulse 2.2s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(228,87,46,.7)}100%{box-shadow:0 0 0 24px rgba(228,87,46,0)}}
+.station{width:22px;height:22px;border-radius:5px;background:var(--ember);border:2px solid #fff;display:grid;place-items:center;
+  font:700 11px/1 Unbounded,sans-serif;color:#fff}
+.drone{width:44px;height:44px;display:grid;place-items:center;will-change:transform}
+.drone svg{width:44px;height:44px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+.tag{background:var(--spruce);color:var(--lichen);border:none;border-radius:6px;font:500 12.5px/1.3 Manrope,sans-serif;padding:5px 8px;box-shadow:none}
+.tag::before{display:none}
+.tag.base-tag{background:rgba(14,38,32,.85);font-size:12px;padding:3px 7px}
+.far .tag.base-tag{display:none}
+.far .tag.base-tag.keep{display:block}
+.mode-cal .tag.base-tag{display:none}
+
+/* alarm */
+.alarm{position:fixed;top:20px;left:460px;right:72px;z-index:650;max-width:720px;border-radius:14px;padding:18px 20px 16px;
+  background:var(--alarm,#E4572E);color:var(--spruce);box-shadow:0 12px 40px rgba(0,0,0,.45);
+  display:grid;grid-template-columns:1fr auto;gap:6px 18px;align-items:start}
+.alarm.enter{animation:drop .5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes drop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+.alarm small{display:block;font-size:13px;font-weight:700;opacity:.8}
+.alarm h2{margin:2px 0 0;font:700 clamp(22px,2.4vw,30px)/1.1 Unbounded,sans-serif}
+.alarm .info{grid-column:1/2;margin:6px 0 0;font-size:14px;line-height:1.55}
+.alarm .info b{font-variant-numeric:tabular-nums}
+.alarm .acts{grid-column:2/3;grid-row:1/3;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.alarm .btn{border-color:rgba(14,38,32,.55);color:var(--spruce);background:rgba(255,255,255,.18);font-weight:700}
+.alarm .btn:hover:not(:disabled){background:rgba(255,255,255,.32)}
+.alarm .btn.solid{background:var(--spruce);color:var(--lichen);border-color:var(--spruce)}
+.alarm .btn.solid:hover:not(:disabled){background:#163a31}
+.alarm :focus-visible{outline-color:var(--spruce)}
+.alarm .sent{grid-column:1/3;font-size:12.5px;font-weight:700;min-height:0;margin:0}
+
+/* overlays */
+.legend{position:fixed;right:20px;bottom:28px;z-index:600;display:flex;gap:16px;padding:9px 15px;border-radius:999px;background:rgba(14,38,32,.9);font-size:12.5px}
+.legend span{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.legend i{width:11px;height:11px;border-radius:50%;background:#F2C1AE}
+.legend i.c{background:var(--ember)}
+.legend i.b{border-radius:3px;background:var(--lichen);transform:rotate(45deg)}
+.legend i.d{width:0;height:0;border-radius:0;background:none;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid #fff}
+.legend i.r{width:18px;height:0;border-radius:0;background:none;border-top:4px solid var(--ember)}
+.legend i.h{background:rgba(233,162,59,.55);border:1.5px solid var(--amber)}
+.follow{position:fixed;right:20px;top:96px;z-index:600}
+.follow .btn{background:rgba(14,38,32,.92);border-color:rgba(216,222,200,.5)}
+.offline{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:700;max-width:min(560px,calc(100vw - 32px));
+  padding:9px 16px;border-radius:10px;background:rgba(14,38,32,.95);border:1px solid var(--amber);color:var(--lichen);font-size:13.5px}
+[hidden]{display:none!important}
+
+@media (max-width:1100px){ .alarm{left:460px;right:20px} }
+@media (max-width:760px){
+  .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:56vh;border-left:0;border-top:4px solid var(--accent);
+    border-radius:14px 14px 0 0;padding:18px 18px 18px;gap:18px}
+  .view{gap:18px}
+  .legend{display:none}
+  .follow{top:auto;bottom:calc(56vh + 12px);right:12px}
+  .tele b{font-size:16px}
+  .brand time{display:none}
+  .alarm{top:10px;left:10px;right:10px;padding:14px 14px 12px;grid-template-columns:1fr;gap:4px}
+  .alarm .acts{grid-column:1;grid-row:auto;flex-direction:row;flex-wrap:wrap;margin-top:8px}
+  .alarm .info{font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){
+  .spot.target,.verdict.reveal,.alarm.enter{animation:none}
+  .panel,.title{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="map" role="application"></div>
+
+<div class="offline" id="offline" role="status" hidden></div>
+<div class="follow" id="follow" hidden><button class="btn" type="button" id="followBtn" data-i18n="follow"></button></div>
+
+<section class="alarm" id="alarm" role="alertdialog" aria-labelledby="aTitle" hidden>
+  <div>
+    <small id="aKicker"></small>
+    <h2 id="aTitle"></h2>
+  </div>
+  <p class="info" id="aInfo"></p>
+  <div class="acts">
+    <button class="btn solid" type="button" id="aCopy" data-i18n="copyDsns"></button>
+    <button class="btn" type="button" id="aAck" data-i18n="ack"></button>
+    <button class="btn" type="button" id="aSound" hidden data-i18n="soundOn"></button>
+  </div>
+  <p class="sent" id="aSent" role="status"></p>
+</section>
+
+<aside class="panel" id="panel">
+  <div class="brand">
+    <b>Zakarpattia Orbit</b>
+    <div class="brand-r">
+      <div class="lang" role="group" aria-label="Мова / Language">
+        <button type="button" data-lang="uk">UA</button><button type="button" data-lang="en">EN</button>
+      </div>
+      <time id="clock">—</time>
+    </div>
+  </div>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabSt" aria-controls="viewSt" data-i18n="tabStation"></button>
+    <button type="button" role="tab" id="tabCal" aria-controls="viewCal" data-i18n="tabCalendar"></button>
+  </div>
+
+  <!-- ===== station ===== -->
+  <div class="view" id="viewSt" role="tabpanel" aria-labelledby="tabSt">
+    <div class="chips" id="chips"></div>
+    <div class="season" id="season" hidden></div>
+
+    <section id="head" aria-live="polite">
+      <h1 class="title" id="title"></h1>
+      <p class="lead" id="lead"></p>
+      <div id="phaseBox" hidden>
+        <div class="phases" id="phases" aria-hidden="true"></div>
+        <div class="phase-label"><span id="phaseStep"></span><b id="phaseName"></b></div>
+      </div>
+    </section>
+
+    <section class="verdict" id="verdict" hidden aria-live="assertive">
+      <h3 id="vTitle"></h3>
+      <p id="vSummary"></p>
+      <div class="meter"><i id="vBar"></i></div>
+      <div class="meter-label"><span data-i18n="confidence"></span><b id="vConf"></b></div>
+      <ul id="vReasons"></ul>
+    </section>
+    <div class="tele" id="tele" hidden>
+      <div><span data-i18n="alt"></span><b id="tAlt">—</b></div>
+      <div><span data-i18n="speed"></span><b id="tSpd">—</b></div>
+      <div><span id="tDistLabel"></span><b id="tDist">—</b></div>
+      <div><span data-i18n="battery"></span><b id="tBat">—</b></div>
+      <div><span data-i18n="missionTime"></span><b id="tTime">—</b></div>
+      <div><span data-i18n="toEnd"></span><b id="tEta">—</b></div>
+    </div>
+
+    <section class="sensors" id="sensors" hidden>
+      <h2 class="sec"><span data-i18n="sensors"></span><small id="sensMode"></small></h2>
+      <div class="sense"><div><span data-i18n="sThermal"></span><b id="sTh">—</b></div><svg viewBox="0 0 96 30" aria-hidden="true"><path id="pTh"/></svg></div>
+      <div class="sense"><div><span data-i18n="sAir"></span><b id="sAir">—</b></div><svg viewBox="0 0 96 30" aria-hidden="true"><path id="pAir"/></svg></div>
+      <div class="sense"><div><span data-i18n="sCo"></span><b id="sCo">—</b></div><svg viewBox="0 0 96 30" aria-hidden="true"><path id="pCo"/></svg></div>
+      <p class="note" id="simNote" hidden data-i18n="simNote"></p>
+    </section>
+
+    <section class="places">
+      <div class="places-head">
+        <h2 class="sec"><span data-i18n="placesTitle"></span><small id="placesSub"></small></h2>
+        <button class="btn" type="button" id="refreshBtn" data-i18n="refresh"></button>
+      </div>
+      <ul class="list" id="places"></ul>
+      <p class="msg" id="msg" role="status"></p>
+    </section>
+
+    <section class="log" id="logBox" hidden>
+      <h2 class="sec" data-i18n="logTitle"></h2>
+      <ul class="list" id="log"></ul>
+    </section>
+  </div>
+
+  <!-- ===== calendar ===== -->
+  <div class="view" id="viewCal" role="tabpanel" aria-labelledby="tabCal" hidden>
+    <section>
+      <h1 class="title" data-i18n="calTitle" style="color:var(--amber)"></h1>
+      <p class="lead" id="calLead"></p>
+    </section>
+    <div id="calEmpty" class="cal-empty" hidden></div>
+    <div id="calBody" hidden style="display:contents">
+      <section>
+        <div class="places-head wrap">
+          <h2 class="sec"><span data-i18n="yearsTitle"></span><small id="yearsSub"></small></h2>
+          <div class="seg" role="group" id="rawSeg">
+            <button type="button" data-v="raw" data-i18n="raw"></button><button type="button" data-v="harm" data-i18n="harm"></button>
+          </div>
+        </div>
+        <svg class="chart" id="chYears" role="img"></svg>
+        <div class="key" id="keyYears"></div>
+        <p class="cap" id="capYears"></p>
+      </section>
+      <section>
+        <h2 class="sec"><span data-i18n="heatTitle"></span><small data-i18n="heatSub"></small></h2>
+        <svg class="chart" id="chHeat" role="img"></svg>
+        <div class="ramp"><span data-i18n="less"></span><i id="rampBar"></i><span data-i18n="more"></span></div>
+      </section>
+      <section>
+        <h2 class="sec"><span data-i18n="climTitle"></span><small id="climSub"></small></h2>
+        <svg class="chart" id="chClim" role="img"></svg>
+        <div class="key" id="keyClim"></div>
+      </section>
+      <section>
+        <h2 class="sec"><span data-i18n="checkTitle"></span><small id="checkSub"></small></h2>
+        <div class="check" id="check"></div>
+      </section>
+      <section>
+        <h2 class="sec" data-i18n="insightsTitle"></h2>
+        <ul class="insights" id="insights"></ul>
+      </section>
+    </div>
+  </div>
+</aside>
+
+<div class="legend" id="legend" aria-hidden="true"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isWide = () => innerWidth > 760;
+
+/* ================= i18n ================= */
+const I18N = {
+  uk: {
+    docTitle:'Zakarpattia Orbit — наземна станція', mapLabel:'Карта Закарпаття: бази дронів, гарячі точки NASA і політ дрона',
+    offline:'Немає зв\'язку з наземною станцією. Перевір, чи запущено python server.py',
+    follow:'Стежити за дроном', tabStation:'Станція', tabCalendar:'Календар горіння',
+    connecting:'Підключаюсь…', confidence:'Впевненість', alt:'Висота', speed:'Швидкість', battery:'Батарея',
+    missionTime:'Час місії', toEnd:'До кінця', toTarget:'До цілі', toBase:'До бази',
+    sensors:'Датчики модуля', sThermal:'Тепловізор, найгарячіша точка', sAir:'Повітря', sCo:'Чадний газ',
+    simNote:'Показання модуля імітовані: заліза ще немає.', placesTitle:'Гарячі точки NASA', refresh:'Оновити дані NASA',
+    logTitle:'Журнал місій', nasaLive:u=>`NASA: живі дані, ${u}`, nasaSaved:'NASA: збережена точка',
+    modLive:'Модуль на зв\'язку', modSim:'Модуль: імітація', speedup:x=>`Час прискорено ×${x}`,
+    droneFrom:b=>`Дрон з бази ${b}`, flyingTo:(s,t)=>`Летить перевірити точку ${s} від ${t}.`,
+    done:'Місію завершено', doneLead:b=>`Дрон повернувся на базу ${b}.`, waiting:'Чекаю команди', quiet:'Поруч тихо',
+    reachable:n=>`${n} ${plural(n,'точка','точки','точок')} у радіусі баз. Обери точку і відправ дрон.`,
+    allOut:'Усі гарячі точки NASA поза радіусом баз.', noFires:'NASA не бачить гарячих точок над Закарпаттям.',
+    stage:(i,n)=>`Етап ${i} з ${n}`, mOnline:'на зв\'язку', scenario:s=>`сценарій ${({fire:'пожежа',field:'поле',false:'хибна'})[s]||s}`,
+    yes:'є', no:'немає', placesSub:n=>`${n} за 5 дн.`, empty:'Порожньо: NASA не бачить пожеж. Це добрий знак.',
+    passes:n=>n>1?`${n} проходи`:'1 прохід', base:(b,d)=>`база ${b}, ${d} км`, outRange:'поза радіусом баз',
+    st:{new:'Нова', flying:'Дрон летить', checked:'Перевірено', out_of_range:'Поза радіусом баз'},
+    noBase:'Немає бази поруч', alreadyFlying:'Дрон уже летить', recheck:'Перевірити ще раз', send:'Відправити дрон',
+    noBattery:'Не вистачить батареї', batLeft:p=>`залишок ≈ ${p}%`, showOnMap:'Показати на карті',
+    hist:{often:'горить майже щороку', sometimes:'іноді горить', first:'вперше'},
+    histDetail:(d,y)=>`${d} ${plural(d,'день','дні','днів')} з вогнем за ${y} ${plural(y,'рік','роки','років')}`,
+    prio:{high:'пріоритет високий', normal:'', low:'пріоритет низький'},
+    sending:'Відправляю дрон…', sent:b=>`Дрон вилетів з бази ${b}.`, notSent:'Дрон не вилетів.',
+    noAnswerSend:'Наземна станція не відповіла. Дрон не вилетів.', fetching:'Беру свіжі дані NASA…',
+    refreshed:'Дані NASA оновлено.', notRefreshed:'Не вдалося оновити дані NASA.', noAnswer:'Наземна станція не відповіла.',
+    risk:{low:'ризик низький', medium:'ризик середній', high:'ризик високий'},
+    logLine:(f,b)=>`${f} хв польоту, батарея в кінці ${b}%`, logBase:b=>`база ${b}`,
+    lgConfirmed:'Бачили кілька разів', lgOne:'Один прохід', lgBase:'База дронів', lgDrone:'Дрон', lgRoute:'Маршрут пожежних',
+    lgCells:'Горіли в 5+ різних роках',
+    alarmKicker:t=>`Тривога · ${t}`, alarmBase:b=>`Перевірив дрон з бази ${b}.`,
+    alarmRoute:(f,km,mn)=>`Пожежна частина ${f}: ${km} км, ≈ ${mn} хв доїзду.`, alarmNoRoute:'Маршрут для пожежних ще будується.',
+    copyDsns:'Скопіювати для ДСНС', ack:'Підтвердити', soundOn:'Увімкнути звук', copied:'Скопійовано. Встав у месенджер або SMS для ДСНС.',
+    copyFail:'Не вдалося скопіювати. Виділи текст вручну.', acked:'Тривогу підтверджено.',
+    copyText:(a)=>`ПОЖЕЖА: ${a.title}\nКоординати: ${a.lat.toFixed(5)}, ${a.lon.toFixed(5)}\nКарта: https://maps.google.com/?q=${a.lat.toFixed(5)},${a.lon.toFixed(5)}\nЧас: ${a.at}\nПеревірив дрон з бази: ${a.base_name}`+(a.route?`\nПожежна частина ${a.route.from_name}: ${fmt(a.route.distance_km,1)} км, ≈ ${fmt(a.route.duration_min)} хв`:'')+`\nДжерело: Zakarpattia Orbit (NASA FIRMS + дрон)`,
+    stationTag:f=>`Пожежна частина: ${f}`,
+    calTitle:'Календар горіння', calLead:(a,b)=>`Скільки гарячих точок бачили супутники над Закарпаттям у ${a}–${b} роках. MODIS і VIIRS зведені в один ряд.`,
+    calMissing:'Календар ще не побудовано: запусти <code>python harmonize/build_calendar.py</code>, потім онови цю вкладку.',
+    calLoading:'Завантажую календар…', yearsTitle:'Точки за рік', raw:'Сирі', harm:'Гармонізовані',
+    yearsSubRaw:'як їх рахують самі сенсори', yearsSubHarm:'в одиницях VIIRS, з інтервалом 80%',
+    kModis:'MODIS', kViirs:'VIIRS S-NPP', kHarm:'Гармонізовано', kBand:'Інтервал 80%',
+    capRaw:'З 2012 року VIIRS бачить дрібніші пожежі, тому кількість точок стрибає вгору. Це зміна сенсора, а не пожеж.',
+    capHarm:'Роки до 2012 переведено в одиниці VIIRS за місячними коефіцієнтами. Стрибка більше немає.',
+    partial:'неповний рік', viirsStarts:'старт VIIRS',
+    heatTitle:'Рік × місяць', heatSub:'гармонізовані точки за місяць', less:'менше', more:'більше',
+    climTitle:'Звичайний рік', climSub:y=>`середнє 2001–${y-1}, смуга від 10-го до 90-го перцентиля; точки — ${y}`,
+    kMean:'Середнє', kRange:'10–90 перцентиль', kNow:y=>`${y} рік`, kWin:'Критичне вікно',
+    checkTitle:'Чи можна довіряти', checkSub:'перевірка на роках, коли працювали обидва сенсори',
+    vMape:'Похибка за рік (без гармонізації)', vR2:'Збіг з VIIRS за роками, R²', vPairs:'MODIS-точок мають пару у VIIRS', vRatio:'Точок VIIRS на одну MODIS',
+    vText:(c)=>`Метод: ${c.validation.method === 'leave-one-year-out' ? 'по черзі ховаємо один рік і передбачаємо його з інших' : c.validation.method}, ${c.validation.n} місяців. Пари шукали в межах 1,5 км і 60 хв, медіанний зсув ${c.pairs.median_offset_m} м.`,
+    insightsTitle:'Що видно з даних', months:['січ','лют','бер','кві','тра','чер','лип','сер','вер','жов','лис','гру'],
+    monthsLong:['січень','лютий','березень','квітень','травень','червень','липень','серпень','вересень','жовтень','листопад','грудень'],
+    pointsUnit:'точок', perMonth:'за місяць', calTip:(ym,v,b)=>`${ym}: ${v} точок (${b})`,
+    basis:{modis_scaled:'MODIS → VIIRS', viirs:'VIIRS', noaa_scaled:'NOAA → VIIRS'},
+    cellTip:(d,y,l)=>`${d} ${plural(d,'день','дні','днів')} з вогнем, ${y} ${plural(y,'рік','роки','років')}<br>востаннє ${l}`,
+    verdictTitle:{'ЛІСОВА ПОЖЕЖА':'Лісова пожежа','СПАЛЮВАННЯ ПОЛЯ / СТЕРНІ':'Спалювання поля','ХИБНА ТРИВОГА':'Хибна тривога'},
+    hotspot:'Гаряча точка', droneT:'Дрон', baseT:b=>`База ${b}`, mw:'МВт', km:'км', m:'м', ms:'м/с', min:'хв',
+    locale:'uk-UA'
+  },
+  en: {
+    docTitle:'Zakarpattia Orbit — ground station', mapLabel:'Map of Zakarpattia: drone bases, NASA hotspots and the drone in flight',
+    offline:'No connection to the ground station. Check that python server.py is running.',
+    follow:'Follow the drone', tabStation:'Station', tabCalendar:'Burning calendar',
+    connecting:'Connecting…', confidence:'Confidence', alt:'Altitude', speed:'Speed', battery:'Battery',
+    missionTime:'Mission time', toEnd:'Remaining', toTarget:'To target', toBase:'To base',
+    sensors:'Module sensors', sThermal:'Thermal camera, hottest spot', sAir:'Air', sCo:'Carbon monoxide',
+    simNote:'Module readings are simulated: the hardware is not built yet.', placesTitle:'NASA hotspots', refresh:'Refresh NASA data',
+    logTitle:'Mission log', nasaLive:u=>`NASA: live data, ${u}`, nasaSaved:'NASA: saved sample',
+    modLive:'Module online', modSim:'Module: simulated', speedup:x=>`Time sped up ×${x}`,
+    droneFrom:b=>`Drone from ${b} base`, flyingTo:(s,t)=>`Flying to check the ${s} hotspot from ${t}.`,
+    done:'Mission complete', doneLead:b=>`The drone is back at ${b} base.`, waiting:'Ready for a task', quiet:'All quiet nearby',
+    reachable:n=>`${n} ${n===1?'hotspot':'hotspots'} within base range. Pick one and send the drone.`,
+    allOut:'All NASA hotspots are out of base range.', noFires:'NASA sees no hotspots over Zakarpattia.',
+    stage:(i,n)=>`Stage ${i} of ${n}`, mOnline:'online', scenario:s=>`scenario: ${({fire:'fire',field:'field burn',false:'false alarm'})[s]||s}`,
+    yes:'yes', no:'none', placesSub:n=>`${n} in the last 5 days`, empty:'Empty: NASA sees no fires. That is good news.',
+    passes:n=>n>1?`${n} passes`:'1 pass', base:(b,d)=>`${b} base, ${d} km`, outRange:'out of base range',
+    st:{new:'New', flying:'Drone en route', checked:'Checked', out_of_range:'Out of base range'},
+    noBase:'No base nearby', alreadyFlying:'Drone en route', recheck:'Check again', send:'Send the drone',
+    noBattery:'Not enough battery', batLeft:p=>`≈ ${p}% left`, showOnMap:'Show on the map',
+    hist:{often:'burns almost every year', sometimes:'burns sometimes', first:'first time'},
+    histDetail:(d,y)=>`${d} fire ${d===1?'day':'days'} over ${y} ${y===1?'year':'years'}`,
+    prio:{high:'high priority', normal:'', low:'low priority'},
+    sending:'Sending the drone…', sent:b=>`The drone took off from ${b} base.`, notSent:'The drone did not take off.',
+    noAnswerSend:'The ground station did not answer. The drone did not take off.', fetching:'Fetching fresh NASA data…',
+    refreshed:'NASA data refreshed.', notRefreshed:'Could not refresh NASA data.', noAnswer:'The ground station did not answer.',
+    risk:{low:'low risk', medium:'medium risk', high:'high risk'},
+    logLine:(f,b)=>`${f} min flight, ${b}% battery at landing`, logBase:b=>`${b} base`,
+    lgConfirmed:'Seen several times', lgOne:'Single pass', lgBase:'Drone base', lgDrone:'Drone', lgRoute:'Fire crew route',
+    lgCells:'Burned in 5+ different years',
+    alarmKicker:t=>`Alarm · ${t}`, alarmBase:b=>`Checked by the drone from ${b} base.`,
+    alarmRoute:(f,km,mn)=>`${f} fire station: ${km} km, ≈ ${mn} min drive.`, alarmNoRoute:'The fire crew route is being built.',
+    copyDsns:'Copy for the fire service', ack:'Acknowledge', soundOn:'Turn on sound', copied:'Copied. Paste it into a message to the fire service.',
+    copyFail:'Copy failed. Select the text manually.', acked:'Alarm acknowledged.',
+    copyText:(a)=>`FIRE: ${a.title}\nCoordinates: ${a.lat.toFixed(5)}, ${a.lon.toFixed(5)}\nMap: https://maps.google.com/?q=${a.lat.toFixed(5)},${a.lon.toFixed(5)}\nTime: ${a.at}\nChecked by the drone from: ${a.base_name}`+(a.route?`\n${a.route.from_name} fire station: ${fmt(a.route.distance_km,1)} km, ≈ ${fmt(a.route.duration_min)} min`:'')+`\nSource: Zakarpattia Orbit (NASA FIRMS + drone)`,
+    stationTag:f=>`Fire station: ${f}`,
+    calTitle:'Burning calendar', calLead:(a,b)=>`How many hotspots satellites saw over Zakarpattia in ${a}–${b}. MODIS and VIIRS merged into one consistent series.`,
+    calMissing:'The calendar is not built yet: run <code>python harmonize/build_calendar.py</code>, then reopen this tab.',
+    calLoading:'Loading the calendar…', yearsTitle:'Hotspots per year', raw:'Raw', harm:'Harmonized',
+    yearsSubRaw:'as each sensor counts them', yearsSubHarm:'in VIIRS units, with an 80% interval',
+    kModis:'MODIS', kViirs:'VIIRS S-NPP', kHarm:'Harmonized', kBand:'80% interval',
+    capRaw:'From 2012 VIIRS sees smaller fires, so the count jumps up. That is a sensor change, not more fires.',
+    capHarm:'Years before 2012 are converted to VIIRS units with monthly factors. The jump is gone.',
+    partial:'partial year', viirsStarts:'VIIRS starts',
+    heatTitle:'Year × month', heatSub:'harmonized hotspots per month', less:'fewer', more:'more',
+    climTitle:'A typical year', climSub:y=>`mean 2001–${y-1}, band from the 10th to the 90th percentile; dots show ${y}`,
+    kMean:'Mean', kRange:'10th–90th percentile', kNow:y=>`${y}`, kWin:'Critical window',
+    checkTitle:'Can it be trusted', checkSub:'tested on the years when both sensors worked',
+    vMape:'Yearly error (without harmonization)', vR2:'Agreement with VIIRS by year, R²', vPairs:'MODIS hotspots with a VIIRS match', vRatio:'VIIRS hotspots per MODIS one',
+    vText:(c)=>`Method: ${c.validation.method === 'leave-one-year-out' ? 'hide one year at a time and predict it from the others' : c.validation.method}, ${c.validation.n} months. Pairs matched within 1.5 km and 60 min, median offset ${c.pairs.median_offset_m} m.`,
+    insightsTitle:'What the data shows', months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+    monthsLong:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    pointsUnit:'hotspots', perMonth:'per month', calTip:(ym,v,b)=>`${ym}: ${v} hotspots (${b})`,
+    basis:{modis_scaled:'MODIS → VIIRS', viirs:'VIIRS', noaa_scaled:'NOAA → VIIRS'},
+    cellTip:(d,y,l)=>`${d} fire ${d===1?'day':'days'}, ${y} ${y===1?'year':'years'}<br>last on ${l}`,
+    verdictTitle:{'ЛІСОВА ПОЖЕЖА':'Forest fire','СПАЛЮВАННЯ ПОЛЯ / СТЕРНІ':'Field burning','ХИБНА ТРИВОГА':'False alarm'},
+    hotspot:'Hotspot', droneT:'Drone', baseT:b=>`${b} base`, mw:'MW', km:'km', m:'m', ms:'m/s', min:'min',
+    locale:'en-GB'
+  }
+};
+const BASE_EN = {'Ужгород':'Uzhhorod','Перечин':'Perechyn','Великий Березний':'Velykyi Bereznyi','Мукачево':'Mukachevo','Берегове':'Berehove',
+  'Свалява':'Svaliava','Воловець':'Volovets','Іршава':'Irshava','Виноградів':'Vynohradiv','Хуст':'Khust',"Міжгір'я":'Mizhhiria','Тячів':'Tiachiv','Рахів':'Rakhiv'};
+function plural(n, one, few, many) { n = Math.abs(n) % 100; const d = n % 10;
+  if (n > 10 && n < 20) return many; if (d === 1) return one; if (d >= 2 && d <= 4) return few; return many; }
+let LANG = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'uk';
+const t = (k, ...a) => { const v = I18N[LANG][k]; return typeof v === 'function' ? v(...a) : v; };
+const bn = s => LANG === 'en' ? (BASE_EN[s] || s) : s;              // base / town names
+const vt = v => v ? ((LANG === 'en' && v.title_en) || (LANG === 'en' && I18N.en.verdictTitle[v.label]) || v.title) : '';
+const tx = (o, k) => (LANG === 'en' && o && o[k + '_en']) || (o && o[k]) || '';  // optional *_en from server
+
+function applyStatic() {
+  document.documentElement.lang = LANG === 'en' ? 'en' : 'uk';
+  document.title = t('docTitle');
+  $('map').setAttribute('aria-label', t('mapLabel'));
+  $('offline').textContent = t('offline');
+  document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === LANG));
+  if (typeof map !== 'undefined' && attrNow !== ATTR[LANG]) { map.attributionControl.removeAttribution(attrNow); attrNow = ATTR[LANG]; map.attributionControl.addAttribution(attrNow); }
+  renderLegend();
+}
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => {
+  if (b.dataset.lang === LANG) return;
+  LANG = b.dataset.lang;
+  const u = new URL(location.href); if (LANG === 'en') u.searchParams.set('lang', 'en'); else u.searchParams.delete('lang');
+  history.replaceState(null, '', u);
+  applyStatic(); lastPlacesKey = lastVerdictKey = lastLogKey = ''; alarmKey = '';
+  if (S) renderAll(); if (CAL) renderCalendar();
+});
+
+/* ================= map ================= */
+const map = L.map('map', {zoomControl:false});
+L.control.zoom({position:'topright'}).addTo(map);
+const ATTR = {uk:'Знімки © Esri, Maxar, Earthstar Geographics · Дані: NASA FIRMS', en:'Imagery © Esri, Maxar, Earthstar Geographics · Data: NASA FIRMS'};
+let attrNow = ATTR[LANG];
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:18, attribution:attrNow}).addTo(map);
+map.setView([48.4, 23.1], 9);
+const zoomClass = () => map.getContainer().classList.toggle('far', map.getZoom() < 10);
+map.on('zoomend', zoomClass); zoomClass();
+
+const divIcon = (html, s) => L.divIcon({className:'', html, iconSize:[s,s], iconAnchor:[s/2,s/2]});
+const layers = {bases:{}, rings:{}, places:{}, links:{}};
+let droneMarker = null, trackLine = null, routeLine = null, fireRoute = null, fireStation = null, cellsLayer = null;
+
+const DRONE_SVG = `<svg viewBox="0 0 44 44"><g fill="none" stroke="#fff" stroke-width="2">
+  <circle cx="11" cy="11" r="6"/><circle cx="33" cy="11" r="6"/><circle cx="11" cy="33" r="6"/><circle cx="33" cy="33" r="6"/>
+  <path d="M15 15L29 29M29 15L15 29"/></g>
+  <path d="M22 9L28 24H16Z" fill="#E4572E" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+
+/* ================= state ================= */
+let S = null, CAL = null, calStatus = 'idle', MODE = 'station', online = true, follow = true, fittedOnce = false;
+let lastPlacesKey = '', lastVerdictKey = '', lastLogKey = '', autoMove = false, lastMissionKey = '', rawMode = 'raw';
+const interp = {from:null, to:null, t0:0, dur:500, headingFrom:0, headingTo:0};
+
+map.on('dragstart zoomstart', () => {
+  if (autoMove) return;
+  if (MODE === 'station' && S && S.mission && S.mission.phase !== 'done') { follow = false; $('follow').hidden = false; }
+});
+$('followBtn').onclick = () => { follow = true; $('follow').hidden = true; if (interp.to) panTo(interp.to); };
+
+/* ================= helpers ================= */
+const fmt = (v, d=0) => (v === null || v === undefined || Number.isNaN(v)) ? '—'
+  : Number(v).toLocaleString(t('locale'), {minimumFractionDigits:d, maximumFractionDigits:d});
+const mmss = s => { if (s == null || s < 0) return '—'; s = Math.round(s); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function spark(el, arr, hot) {
+  const a = (arr || []).filter(v => v != null).slice(-90);
+  if (a.length < 2) { el.setAttribute('d', ''); return; }
+  const lo = Math.min(...a), hi = Math.max(...a), span = (hi - lo) || 1;
+  el.setAttribute('d', a.map((v, i) => `${i ? 'L' : 'M'}${(i / (a.length - 1) * 96).toFixed(1)} ${(28 - (v - lo) / span * 26).toFixed(1)}`).join(''));
+  el.classList.toggle('ember', !!hot);
+}
+function setAccent(c) { document.documentElement.style.setProperty('--accent', c); }
+function panTo(ll) {
+  autoMove = true;
+  const pt = map.latLngToContainerPoint(ll);
+  const cx = isWide() ? (440 + innerWidth) / 2 : innerWidth / 2;
+  const cy = isWide() ? innerHeight / 2 : innerHeight * 0.22;
+  map.panBy([pt.x - cx, pt.y - cy], {animate:!reduceMotion, duration:.5, noMoveStart:true});
+  setTimeout(() => autoMove = false, 600);
+}
+function fitPts(pts, maxZoom = 11) {
+  if (!pts.length) return;
+  autoMove = true;
+  map.fitBounds(L.latLngBounds(pts).pad(.08), {paddingTopLeft:[isWide() ? 460 : 16, 30],
+    paddingBottomRight:[30, isWide() ? 30 : innerHeight * .56 + 16], maxZoom, animate:false});
+  setTimeout(() => autoMove = false, 100);
+}
+function fitAll() { if (S) fitPts([...S.bases.map(b => [b.lat, b.lon]), ...S.places.map(p => [p.lat, p.lon])]); }
+
+/* ================= legend ================= */
+function renderLegend() {
+  const items = MODE === 'calendar'
+    ? [['h', t('lgCells')], ['b', t('lgBase')]]
+    : [['c', t('lgConfirmed')], ['', t('lgOne')], ['b', t('lgBase')], ['d', t('lgDrone')]]
+        .concat(S && S.alarm && S.alarm.route ? [['r', t('lgRoute')]] : []);
+  const html = items.map(([c, l]) => `<span><i class="${c}"></i>${esc(l)}</span>`).join('');
+  if ($('legend').innerHTML !== html) $('legend').innerHTML = html;
+}
+
+/* ================= map render ================= */
+function renderMap() {
+  const busyBase = S.mission && S.mission.phase !== 'done' ? S.mission.base_id : null;
+  S.bases.forEach(b => {
+    if (!layers.bases[b.id]) {
+      layers.rings[b.id] = L.circle([b.lat, b.lon], {radius:S.range_km * 1000, color:'#D8DEC8', weight:1, opacity:.22,
+        dashArray:'3 7', fill:false, interactive:false}).addTo(map);
+      layers.bases[b.id] = L.marker([b.lat, b.lon], {icon:divIcon('<div class="base"></div>', 22), keyboard:false})
+        .addTo(map).bindTooltip(bn(b.name), {className:'tag base-tag', permanent:true, direction:'right', offset:[12,0]});
+    }
+    const mk = layers.bases[b.id];
+    if (mk._lang !== LANG) { mk.setTooltipContent(bn(b.name)); mk._lang = LANG; }
+    const el = mk.getElement(), busy = b.status === 'busy' || b.id === busyBase;
+    if (el) el.firstChild.classList.toggle('busy', busy);
+    const tt = mk.getTooltip() && mk.getTooltip().getElement();
+    if (tt) tt.classList.toggle('keep', busy);
+  });
+
+  const seen = new Set();
+  S.places.forEach(p => {
+    seen.add(p.id);
+    const active = S.mission && S.mission.place_id === p.id && S.mission.phase !== 'done';
+    const color = p.verdict ? p.verdict.color : null;
+    const cls = 'spot' + (p.confirmed ? ' c' : '') + (p.status === 'out_of_range' ? ' out' : '') + (active ? ' target' : '');
+    const html = `<div class="${cls}"${color ? ` style="background:${color}"` : ''}></div>`;
+    const h = p.history;
+    const tip = `${esc(p.sensors.join(', '))}<br>${esc(p.latest)}, ${fmt(p.frp_max,1)} ${t('mw')}`
+      + (h ? `<br>${esc(t('hist')[h.recurrence] || '')}` : '') + (p.verdict ? `<br><b>${esc(vt(p.verdict))}</b>` : '');
+    if (!layers.places[p.id]) {
+      layers.places[p.id] = L.marker([p.lat, p.lon], {icon:divIcon(html, 22), title:t('hotspot'), zIndexOffset:500})
+        .addTo(map).bindTooltip(tip, {className:'tag', direction:'top', offset:[0,-10]});
+      layers.places[p.id]._html = html;
+    } else {
+      if (layers.places[p.id]._html !== html) { layers.places[p.id].setIcon(divIcon(html, 22)); layers.places[p.id]._html = html; }
+      layers.places[p.id].setTooltipContent(tip);
+    }
+    const base = S.bases.find(b => b.id === p.base_id);
+    if (base) {
+      const ll = [[base.lat, base.lon], [p.lat, p.lon]];
+      if (!layers.links[p.id]) layers.links[p.id] = L.polyline(ll, {color:'#D8DEC8', weight:1, opacity:.45, interactive:false}).addTo(map);
+      else layers.links[p.id].setLatLngs(ll);
+    } else if (layers.links[p.id]) { map.removeLayer(layers.links[p.id]); delete layers.links[p.id]; }
+  });
+  Object.keys(layers.places).forEach(id => { if (!seen.has(id)) {
+    map.removeLayer(layers.places[id]); delete layers.places[id];
+    if (layers.links[id]) { map.removeLayer(layers.links[id]); delete layers.links[id]; } } });
+
+  // fire crew route
+  const a = S.alarm, r = a && a.route;
+  if (r && r.coords && r.coords.length > 1) {
+    if (!fireRoute) fireRoute = L.polyline(r.coords, {color:'#E4572E', weight:6, opacity:.95, lineCap:'round', interactive:false}).addTo(map);
+    else fireRoute.setLatLngs(r.coords);
+    const st = r.coords[0];
+    const label = t('stationTag', bn(r.from_name));
+    if (!fireStation) fireStation = L.marker(st, {icon:divIcon('<div class="station">П</div>', 24), zIndexOffset:1500, keyboard:false})
+      .addTo(map).bindTooltip(label, {className:'tag', permanent:true, direction:'left', offset:[-14,0]});
+    else { fireStation.setLatLng(st); fireStation.setTooltipContent(label); }
+  } else {
+    [fireRoute, fireStation].forEach(l => l && map.removeLayer(l)); fireRoute = fireStation = null;
+  }
+
+  const m = S.mission;
+  if (m) {
+    if (!routeLine) routeLine = L.polyline(m.route, {color:'#fff', weight:2, opacity:.75, dashArray:'6 8', interactive:false}).addTo(map);
+    else routeLine.setLatLngs(m.route);
+    if (!trackLine) trackLine = L.polyline(m.track || [], {color:'#E4572E', weight:3, opacity:.95, interactive:false}).addTo(map);
+    else trackLine.setLatLngs(m.track || []);
+    const now = performance.now(), to = L.latLng(m.lat, m.lon);
+    if (!droneMarker) {
+      droneMarker = L.marker(to, {icon:L.divIcon({className:'', html:`<div class="drone">${DRONE_SVG}</div>`, iconSize:[44,44], iconAnchor:[22,22]}),
+        zIndexOffset:2000, keyboard:false, title:t('droneT')}).addTo(map);
+      interp.from = to; interp.headingFrom = m.heading_deg || 0;
+    } else {
+      interp.from = droneMarker.getLatLng(); interp.headingFrom = interp.headingCur ?? interp.headingTo;
+    }
+    interp.to = to; interp.headingTo = m.heading_deg || 0; interp.t0 = now;
+    const mk = m.place_id + '|' + m.base_id;
+    if (mk !== lastMissionKey) {
+      lastMissionKey = mk; follow = true; $('follow').hidden = true;
+      if (MODE === 'station') {
+        autoMove = true;
+        map.fitBounds(L.latLngBounds(m.route).pad(.35), {paddingTopLeft:[isWide() ? 460 : 16, 40],
+          paddingBottomRight:[40, isWide() ? 40 : innerHeight * .56 + 16], maxZoom:13, animate:!reduceMotion});
+        setTimeout(() => autoMove = false, 900);
+      }
+    } else if (MODE === 'station' && follow && m.phase !== 'done') panTo(to);
+  } else {
+    [droneMarker, trackLine, routeLine].forEach(l => l && map.removeLayer(l));
+    droneMarker = trackLine = routeLine = null; interp.to = null; lastMissionKey = '';
+  }
+}
+
+function tick(now) {
+  if (droneMarker && interp.to) {
+    const k = reduceMotion ? 1 : Math.min(1, (now - interp.t0) / interp.dur);
+    const lat = interp.from.lat + (interp.to.lat - interp.from.lat) * k;
+    const lng = interp.from.lng + (interp.to.lng - interp.from.lng) * k;
+    droneMarker.setLatLng([lat, lng]);
+    const dh = ((interp.headingTo - interp.headingFrom + 540) % 360) - 180;
+    interp.headingCur = interp.headingFrom + dh * k;
+    const el = droneMarker.getElement();
+    if (el && el.firstChild) el.firstChild.style.transform = `rotate(${interp.headingCur}deg)`;
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ================= station panel ================= */
+function renderChips() {
+  const m = S.mission;
+  const src = S.source === 'live' ? `<span class="chip"><i class="on"></i>${esc(t('nasaLive', S.updated_at || ''))}</span>`
+    : `<span class="chip"><i class="sim"></i>${esc(t('nasaSaved'))}</span>`;
+  const mod = m && m.module_mode === 'live' ? `<span class="chip"><i class="on"></i>${esc(t('modLive'))}</span>`
+    : `<span class="chip"><i class="sim"></i>${esc(t('modSim'))}</span>`;
+  const sp = S.speedup && S.speedup !== 1 ? `<span class="chip">${esc(t('speedup', S.speedup))}</span>` : '';
+  const html = src + mod + sp;
+  if ($('chips').innerHTML !== html) $('chips').innerHTML = html;
+}
+function renderSeason() {
+  const s = S.season;
+  $('season').hidden = !s;
+  if (!s) return;
+  const mi = new Date(S.now || Date.now()).getMonth();
+  const month = LANG === 'en' ? I18N.en.monthsLong[mi] : (s.month_label || I18N.uk.monthsLong[mi]);
+  const text = tx(s, 'text');
+  const html = `<b class="${esc(s.risk)}">${esc(month.charAt(0).toUpperCase() + month.slice(1))}: ${esc(t('risk')[s.risk] || s.risk)}</b><span>${esc(text)}</span>`;
+  if ($('season').innerHTML !== html) $('season').innerHTML = html;
+}
+
+function renderHead() {
+  const m = S.mission;
+  const reachable = S.places.filter(p => p.status !== 'out_of_range').length;
+  if (m && m.phase !== 'done') {
+    setAccent(m.verdict ? m.verdict.color : '#D8DEC8');
+    $('title').textContent = t('droneFrom', bn(m.base_name));
+    const place = S.places.find(p => p.id === m.place_id);
+    $('lead').textContent = place ? t('flyingTo', place.sensors.join(', '), place.latest) : '';
+  } else if (m && m.phase === 'done') {
+    setAccent(m.verdict ? m.verdict.color : '#7FB069');
+    $('title').textContent = t('done');
+    $('lead').textContent = t('doneLead', bn(m.base_name));
+  } else {
+    setAccent('#7FB069');
+    $('title').textContent = reachable ? t('waiting') : t('quiet');
+    $('lead').textContent = reachable ? t('reachable', reachable) : S.places.length ? t('allOut') : t('noFires');
+  }
+  $('phaseBox').hidden = !m;
+  if (m) {
+    const idx = Math.max(0, m.phases.findIndex(p => p.id === m.phase));
+    const html = m.phases.map((p, i) => `<span class="${i < idx || m.phase === 'done' ? 'done' : i === idx ? 'now' : ''}"></span>`).join('');
+    if ($('phases').innerHTML !== html) $('phases').innerHTML = html;
+    $('phaseStep').textContent = t('stage', idx + 1, m.phases.length);
+    $('phaseName').textContent = LANG === 'en' ? (m.phases[idx].label_en || PHASE_EN[m.phase] || m.phase_label) : m.phase_label;
+  }
+}
+const PHASE_EN = {takeoff:'Take-off', cruise:'Flying to the hotspot', descend:'Descent', inspect:'Inspection', return:'Return', land:'Landing', done:'At base'};
+
+function renderTele() {
+  const m = S.mission;
+  $('tele').hidden = $('sensors').hidden = !m;
+  if (!m) return;
+  $('tAlt').innerHTML = `${fmt(m.alt_m)}<small>${t('m')}</small>`;
+  $('tSpd').innerHTML = `${fmt(m.speed_ms, 1)}<small>${t('ms')}</small>`;
+  const homeward = ['return','land','done'].includes(m.phase);
+  const dd = homeward ? m.dist_from_base_m : m.dist_to_target_m;
+  $('tDistLabel').textContent = homeward ? t('toBase') : t('toTarget');
+  $('tDist').innerHTML = dd >= 1000 ? `${fmt(dd / 1000, 1)}<small>${t('km')}</small>` : `${fmt(dd)}<small>${t('m')}</small>`;
+  $('tBat').innerHTML = `${fmt(m.battery_pct)}<small>%</small>`;
+  $('tBat').classList.toggle('low', m.battery_pct < 30);
+  $('tTime').textContent = mmss(m.t_sim_s);
+  $('tEta').textContent = m.phase === 'done' ? '0:00' : '≈ ' + mmss(m.eta_s);
+  const s = m.sensors || {}, h = m.history || {};
+  const thHot = s.thermal_max_c >= 100, riseHot = s.temp_rise_c >= 8, coHot = !!s.co_detected;
+  $('sTh').textContent = `${fmt(s.thermal_max_c)} °C`; $('sTh').className = thHot ? 'ember' : '';
+  $('sAir').textContent = `${fmt(s.air_temp_c, 1)} °C` + (s.temp_rise_c ? `, +${fmt(s.temp_rise_c, 1)}` : ''); $('sAir').className = riseHot ? 'ember' : '';
+  $('sCo').textContent = s.co_ppm != null ? `${fmt(s.co_ppm)} ppm` : (coHot ? t('yes') : t('no')); $('sCo').className = coHot ? 'ember' : '';
+  spark($('pTh'), h.thermal, thHot); spark($('pAir'), h.air, riseHot); spark($('pCo'), h.co, coHot);
+  $('sensMode').textContent = m.module_mode === 'live' ? t('mOnline') : t('scenario', m.scenario);
+  $('simNote').hidden = m.module_mode !== 'sim';
+}
+
+function renderVerdict() {
+  const v = S.mission && S.mission.verdict;
+  const key = v ? `${S.mission.place_id}|${v.label}|${v.confidence}|${LANG}` : '';
+  if (key === lastVerdictKey) return;
+  const fresh = !!v && lastVerdictKey === '';
+  lastVerdictKey = key;
+  $('verdict').hidden = !v;
+  if (!v) return;
+  $('vTitle').textContent = vt(v); $('vTitle').style.color = v.color;
+  $('vSummary').textContent = tx(v, 'summary');
+  $('vBar').style.width = `${Math.round(v.confidence * 100)}%`; $('vBar').style.background = v.color;
+  $('vConf').textContent = `${Math.round(v.confidence * 100)}%`;
+  const reasons = (LANG === 'en' && v.reasons_en) || v.reasons || [];
+  $('vReasons').innerHTML = reasons.map(r => `<li>${esc(r)}</li>`).join('');
+  const box = $('verdict');
+  box.classList.remove('reveal');
+  if (fresh) { void box.offsetWidth; box.classList.add('reveal'); }
+}
+
+function renderPlaces() {
+  const busy = S.mission && S.mission.phase !== 'done';
+  const key = JSON.stringify([LANG, S.places.map(p => [p.id, p.status, p.verdict && p.verdict.label, p.base_id, p.battery_ok,
+    p.battery_left_pct, p.priority, p.history && p.history.recurrence]), busy, S.mission && S.mission.place_id]);
+  $('placesSub').textContent = S.places.length ? t('placesSub', S.places.length) : '';
+  if (key === lastPlacesKey) return;
+  lastPlacesKey = key;
+  const ae = document.activeElement, focusedId = ae && ae.dataset ? ae.dataset.id : null, focusedKind = ae && ae.dataset ? ae.dataset.kind : null;
+  if (!S.places.length) { $('places').innerHTML = `<li class="empty">${esc(t('empty'))}</li>`; return; }
+  $('places').innerHTML = S.places.map(p => {
+    const active = S.mission && S.mission.place_id === p.id && busy;
+    const where = p.base_id ? t('base', esc(bn(p.base_name)), fmt(p.dist_km, 1)) : t('outRange');
+    let btn = '', note = '';
+    if (p.status === 'out_of_range') btn = `<button class="btn" type="button" disabled>${esc(t('noBase'))}</button>`;
+    else if (active) btn = `<button class="btn" type="button" disabled>${esc(t('alreadyFlying'))}</button>`;
+    else if (p.battery_ok === false) {
+      btn = `<button class="btn" type="button" disabled>${esc(t('noBattery'))}</button>`;
+      if (p.battery_left_pct != null) note = `<small>${esc(t('batLeft', fmt(p.battery_left_pct)))}</small>`;
+    } else btn = `<button class="btn primary" type="button" data-kind="send" data-id="${esc(p.id)}" ${busy ? 'disabled' : ''}>${esc(p.status === 'checked' ? t('recheck') : t('send'))}</button>`;
+    const verdict = p.verdict ? `<span class="v" style="color:${p.verdict.color}">${esc(vt(p.verdict))}</span>`
+      : `<span class="m">${esc(t('st')[p.status] || '')}</span>`;
+    const h = p.history, badges = [];
+    if (p.priority === 'high' || p.priority === 'low') badges.push(`<span class="badge ${p.priority}">${esc(t('prio')[p.priority])}</span>`);
+    if (h && h.recurrence) badges.push(`<span class="badge ${h.recurrence}" title="${esc(h.fire_days ? t('histDetail', h.fire_days, h.years) : '')}">${esc(t('hist')[h.recurrence])}${h.fire_days ? ': ' + esc(t('histDetail', h.fire_days, h.years)) : ''}</span>`);
+    return `<li class="place${active ? ' active' : ''}">
+      <span class="dot${p.confirmed ? ' c' : ''}"${p.verdict ? ` style="background:${p.verdict.color}"` : ''}></span>
+      <button class="go" type="button" data-kind="go" data-id="${esc(p.id)}" aria-label="${esc(t('showOnMap'))}">
+        <span class="s">${esc(p.sensors.join(', '))}</span>
+        <span class="m">${fmt(p.frp_max, 1)} ${t('mw')}, ${esc(t('passes', p.passes))}, ${where}</span>
+        ${verdict}
+        ${badges.length ? `<span class="badges">${badges.join('')}</span>` : ''}
+      </button>
+      <span class="t">${esc(p.latest)}</span>
+      <div class="act">${btn}${note}</div></li>`;
+  }).join('');
+  if (focusedId) { const el = document.querySelector(`[data-id="${focusedId}"][data-kind="${focusedKind}"]`); if (el && !el.disabled) el.focus(); }
+}
+
+function renderLog() {
+  const log = S.log || [];
+  $('logBox').hidden = !log.length;
+  const key = LANG + JSON.stringify(log.map(l => [l.at, l.place_id, l.title]));
+  if (key === lastLogKey) return; lastLogKey = key;
+  $('log').innerHTML = log.slice(0, 12).map(l => {
+    const title = LANG === 'en' ? (l.title_en || I18N.en.verdictTitle[l.label] || EN_TITLE_BY_UA[l.title] || l.title) : l.title;
+    return `<li><time>${esc(l.at)}</time><b style="color:${esc(l.color)}">${esc(title)}</b><span class="c">${Math.round((l.confidence || 0) * 100)}%</span>
+      <span class="m">${esc(t('logBase', bn(l.base_name)))} · ${esc(t('logLine', fmt(l.flight_min), fmt(l.battery_end_pct)))}</span></li>`;
+  }).join('');
+}
+const EN_TITLE_BY_UA = {'Лісова пожежа':'Forest fire','Спалювання поля':'Field burning','Хибна тривога':'False alarm'};
+
+$('places').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-id]'); if (!b) return;
+  const p = S.places.find(x => x.id === b.dataset.id); if (!p) return;
+  if (b.dataset.kind === 'go') {
+    follow = false; $('follow').hidden = !(S.mission && S.mission.phase !== 'done');
+    map.flyTo([p.lat, p.lon], 12, {duration:reduceMotion ? 0 : .8});
+    layers.places[p.id] && layers.places[p.id].openTooltip();
+    return;
+  }
+  b.disabled = true; say(t('sending')); unlockAudio();
+  try {
+    const r = await fetch('/api/dispatch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({place_id:p.id})});
+    const j = await r.json();
+    if (j.ok) { say(t('sent', bn(p.base_name))); follow = true; $('follow').hidden = true; lastVerdictKey = ''; }
+    else say(j.error || t('notSent'), true);
+  } catch { say(t('noAnswerSend'), true); }
+  poll();
+});
+$('refreshBtn').onclick = async () => {
+  const b = $('refreshBtn'); b.disabled = true; say(t('fetching'));
+  try { const j = await (await fetch('/api/refresh', {method:'POST'})).json(); say(j.ok ? t('refreshed') : (j.error || t('notRefreshed')), !j.ok); }
+  catch { say(t('noAnswer'), true); }
+  b.disabled = false; poll();
+};
+let msgTimer = 0;
+function say(s, err = false) {
+  $('msg').textContent = s; $('msg').classList.toggle('err', err);
+  clearTimeout(msgTimer); msgTimer = setTimeout(() => $('msg').textContent = '', 6000);
+}
+
+/* ================= alarm + sound ================= */
+let audio = null, alarmKey = '', ackedLocal = '', beepTimer = 0, fittedAlarm = '';
+function unlockAudio() {
+  try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch {}
+  updateSoundBtn();
+}
+addEventListener('pointerdown', unlockAudio, {passive:true});
+addEventListener('keydown', unlockAudio);
+function updateSoundBtn() { $('aSound').hidden = !!(audio && audio.state === 'running'); }
+function beep() {
+  if (!audio || audio.state !== 'running') { updateSoundBtn(); return; }
+  const now = audio.currentTime;
+  [[880, 0], [660, .22], [880, .44]].forEach(([f, d]) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = 'square'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, now + d); g.gain.exponentialRampToValueAtTime(0.12, now + d + .02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + d + .18);
+    o.connect(g).connect(audio.destination); o.start(now + d); o.stop(now + d + .2);
+  });
+}
+function renderAlarm() {
+  const a = S.alarm;
+  const key = a ? `${a.place_id}|${a.at}` : '';
+  const show = !!a && !a.acknowledged && ackedLocal !== key;
+  const box = $('alarm');
+  if (!show) {
+    box.hidden = true; clearInterval(beepTimer); beepTimer = 0;
+    if (!a) ackedLocal = '';
+    return;
+  }
+  const wasHidden = box.hidden;
+  box.style.setProperty('--alarm', a.color || '#E4572E');
+  const sig = key + LANG + JSON.stringify(a.route || null);
+  if (sig !== alarmKey) {
+    alarmKey = sig;
+    $('aKicker').textContent = t('alarmKicker', a.at);
+    $('aTitle').textContent = LANG === 'en' ? (a.title_en || EN_TITLE_BY_UA[a.title] || a.title) : a.title;
+    const r = a.route;
+    $('aInfo').innerHTML = `<b>${a.lat.toFixed(5)}, ${a.lon.toFixed(5)}</b><br>${esc(t('alarmBase', bn(a.base_name)))}<br>`
+      + esc(r ? t('alarmRoute', bn(r.from_name), fmt(r.distance_km, 1), fmt(r.duration_min)) : t('alarmNoRoute'));
+  }
+  if (wasHidden && MODE === 'station' && fittedAlarm !== key) {
+    fittedAlarm = key;
+    const pts = [[a.lat, a.lon], ...((a.route && a.route.coords) || [])];
+    autoMove = true; follow = false;
+    map.fitBounds(L.latLngBounds(pts).pad(.25), {paddingTopLeft:[isWide() ? 460 : 16, isWide() ? 220 : 250],
+      paddingBottomRight:[40, isWide() ? 60 : innerHeight * .56 + 16], maxZoom:13, animate:!reduceMotion});
+    setTimeout(() => autoMove = false, 900);
+    if (S.mission && S.mission.phase !== 'done') $('follow').hidden = false;
+  }
+  if (wasHidden) {
+    box.hidden = false; $('aSent').textContent = '';
+    if (!reduceMotion) { box.classList.remove('enter'); void box.offsetWidth; box.classList.add('enter'); }
+  }
+  updateSoundBtn();
+  if (!beepTimer) { beep(); beepTimer = setInterval(beep, 4000); }
+}
+$('aSound').onclick = () => { unlockAudio(); setTimeout(() => { updateSoundBtn(); beep(); }, 60); };
+$('aCopy').onclick = async () => {
+  const a = S && S.alarm; if (!a) return;
+  const text = t('copyText', {...a, title: LANG === 'en' ? (a.title_en || EN_TITLE_BY_UA[a.title] || a.title) : a.title,
+    base_name: bn(a.base_name), route: a.route ? {...a.route, from_name: bn(a.route.from_name)} : null});
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch {
+    const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch {} ta.remove();
+  }
+  $('aSent').textContent = ok ? t('copied') : t('copyFail');
+};
+$('aAck').onclick = async () => {
+  const a = S && S.alarm; if (!a) return;
+  ackedLocal = `${a.place_id}|${a.at}`;
+  clearInterval(beepTimer); beepTimer = 0; $('alarm').hidden = true; say(t('acked'));
+  try { await fetch('/api/alarm/ack', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({place_id:a.place_id})}); } catch {}
+  poll();
+};
+
+/* ================= tabs ================= */
+function setMode(m) {
+  MODE = m;
+  $('tabSt').setAttribute('aria-selected', m === 'station'); $('tabCal').setAttribute('aria-selected', m === 'calendar');
+  $('tabSt').tabIndex = m === 'station' ? 0 : -1; $('tabCal').tabIndex = m === 'calendar' ? 0 : -1;
+  $('viewSt').hidden = m !== 'station'; $('viewCal').hidden = m !== 'calendar';
+  document.body.classList.toggle('mode-cal', m === 'calendar');
+  map.getContainer().classList.toggle('mode-cal', m === 'calendar');
+  $('panel').scrollTop = 0;
+  if (m === 'calendar') {
+    $('follow').hidden = true;
+    setAccent('#E9A23B');
+    if (!CAL) loadCalendar(); else { renderCalendar(); showCells(true); }
+  } else {
+    showCells(false);
+    if (S) { renderHead(); if (S.mission && S.mission.phase !== 'done' && interp.to) { follow = true; panTo(interp.to); } }
+  }
+  renderLegend();
+}
+$('tabSt').onclick = () => setMode('station');
+$('tabCal').onclick = () => setMode('calendar');
+document.querySelector('.tabs').addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = MODE === 'station' ? 'calendar' : 'station'; setMode(n); (n === 'station' ? $('tabSt') : $('tabCal')).focus(); }
+});
+
+/* ================= calendar ================= */
+async function loadCalendar() {
+  calStatus = 'loading';
+  $('calBody').hidden = true; $('calEmpty').hidden = false; $('calEmpty').textContent = t('calLoading'); $('calLead').textContent = '';
+  try {
+    const r = await fetch('/api/calendar', {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    CAL = await r.json(); calStatus = 'ok';
+    renderCalendar(); if (MODE === 'calendar') showCells(true);
+  } catch {
+    calStatus = 'missing'; $('calEmpty').innerHTML = t('calMissing');
+  }
+}
+
+function showCells(on) {
+  if (!on) { if (cellsLayer) map.removeLayer(cellsLayer); return; }
+  if (!CAL || !CAL.cells) return;
+  if (!cellsLayer || cellsLayer._lang !== LANG) {
+    if (cellsLayer) map.removeLayer(cellsLayer);
+    const rep = CAL.cells.filter(c => c.years >= 5);  // лише місця, що горіли в ≥5 різних роках
+    const maxD = Math.max(1, ...rep.map(c => c.fire_days)), maxY = Math.max(1, ...rep.map(c => c.years));
+    cellsLayer = L.layerGroup(rep.map(c => L.circleMarker([c.lat, c.lon], {
+      radius: 2 + 7 * Math.sqrt(c.fire_days / maxD), stroke:true, weight:1, color:'#E9A23B', opacity:.55 + .45 * c.years / maxY,
+      fillColor: c.years / maxY > .5 ? '#E4572E' : '#E9A23B', fillOpacity:.18 + .5 * c.years / maxY
+    }).bindTooltip(t('cellTip', c.fire_days, c.years, c.last || '—'), {className:'tag', direction:'top', offset:[0,-4]})));
+    cellsLayer._lang = LANG;
+  }
+  cellsLayer.addTo(map);
+  if (CAL.bbox) { const [w, s, e, n] = CAL.bbox; fitPts([[s, w], [n, e]], 10); }
+}
+
+const YEAR_NOW = () => new Date((S && S.now) || Date.now()).getFullYear();
+function yearly() {
+  const by = {};
+  CAL.monthly.forEach(m => {
+    const y = +m.ym.slice(0, 4);
+    const o = by[y] || (by[y] = {y, n:0, modis:0, viirs:0, vN:0, h:0, lo:0, hi:0});
+    o.n++; o.modis += m.modis || 0; o.h += m.harmonized || 0; o.lo += m.harmonized_lo ?? m.harmonized ?? 0; o.hi += m.harmonized_hi ?? m.harmonized ?? 0;
+    if (m.viirs != null) { o.viirs += m.viirs; o.vN++; }
+  });
+  return Object.values(by).sort((a, b) => a.y - b.y).map(o => ({...o, viirs: o.vN ? o.viirs : null, partial: o.n < 12}));
+}
+function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const f = v / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; }
+function niceAxis(maxV, n = 4) { const step = niceMax(Math.max(maxV, 1e-9) / n); return {step, top: step * Math.ceil(maxV / step)}; }
+const kfmt = v => v >= 10000 ? fmt(v / 1000, 0) + 'k' : v >= 1000 ? fmt(v / 1000, 1) + 'k' : fmt(v);
+
+function chartYears() {
+  const Y = yearly(); if (!Y.length) return;
+  const W = 360, H = 210, L0 = 38, R0 = 10, T0 = 14, B0 = 24, iw = W - L0 - R0, ih = H - T0 - B0;
+  const y0 = Y[0].y, y1 = Y[Y.length - 1].y;
+  const raw = rawMode === 'raw';
+  const vals = raw ? Y.flatMap(o => [o.modis, o.viirs || 0]) : Y.flatMap(o => [o.hi, o.h]);
+  const ax = niceAxis(Math.max(...vals) * 1.02), top = ax.top;
+  const X = y => L0 + (y - y0) / Math.max(1, y1 - y0) * iw, Yp = v => T0 + ih - v / top * ih;
+  let g = '';
+  for (let v = 0; v <= top + 1e-9; v += ax.step) { const yy = Yp(v);
+    g += `<line class="grid" x1="${L0}" x2="${W - R0}" y1="${yy}" y2="${yy}"/><text x="${L0 - 6}" y="${yy + 3}" text-anchor="end">${kfmt(v)}</text>`; }
+  for (let y = Math.ceil(y0 / 5) * 5; y <= y1; y += 5) g += `<text x="${X(y)}" y="${H - 6}" text-anchor="middle">${y}</text>`;
+  g += `<line class="ax" x1="${L0}" x2="${W - R0}" y1="${T0 + ih}" y2="${T0 + ih}"/>`;
+  // VIIRS start marker
+  if (2012 >= y0 && 2012 <= y1) g += `<line x1="${X(2012)}" x2="${X(2012)}" y1="${T0}" y2="${T0 + ih}" stroke="rgba(216,222,200,.35)" stroke-dasharray="2 3"/>
+    <text x="${X(2012) + 4}" y="${T0 + 8}" style="fill:var(--lichen)">${esc(t('viirsStarts'))}</text>`;
+  const path = (pts) => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('');
+  const full = Y.filter(o => !o.partial), last = Y[Y.length - 1];
+  const seg = (sel, color, w, dash = '') => {
+    const ptsF = full.filter(o => sel(o) != null).map(o => [X(o.y), Yp(sel(o))]);
+    let s = `<path d="${path(ptsF)}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`;
+    if (last.partial && sel(last) != null && ptsF.length) {
+      const pv = full[full.length - 1];
+      s += `<path d="M${X(pv.y)} ${Yp(sel(pv))}L${X(last.y)} ${Yp(sel(last))}" fill="none" stroke="${color}" stroke-width="${w}" stroke-dasharray="3 3" opacity=".7"/>`;
+    }
+    return s;
+  };
+  if (raw) {
+    g += seg(o => o.modis, '#D8DEC8', 1.8);
+    g += seg(o => o.viirs, '#E9A23B', 2.2);
+  } else {
+    const band = Y.map(o => [X(o.y), Yp(o.hi)]).concat(Y.slice().reverse().map(o => [X(o.y), Yp(o.lo)]));
+    g += `<path d="${path(band)}Z" fill="rgba(127,176,105,.22)" stroke="none"/>`;
+    g += seg(o => o.modis, 'rgba(216,222,200,.35)', 1.2, '2 3');
+    g += seg(o => o.h, '#7FB069', 2.4);
+  }
+  // tooltip targets
+  Y.forEach(o => { const v = raw ? `MODIS ${fmt(o.modis)}${o.viirs != null ? ', VIIRS ' + fmt(o.viirs) : ''}` : `${fmt(o.h)} (${fmt(o.lo)}–${fmt(o.hi)})`;
+    g += `<rect x="${X(o.y) - iw / (Y.length * 2)}" y="${T0}" width="${iw / Y.length}" height="${ih}" fill="transparent"><title>${o.y}${o.partial ? ' (' + t('partial') + ')' : ''}: ${v}</title></rect>`; });
+  if (last.partial) g += `<text x="${X(last.y)}" y="${T0 + ih - 6}" text-anchor="end" style="font-size:9px">${esc(t('partial'))}</text>`;
+  const svg = $('chYears'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = g;
+  svg.setAttribute('aria-label', `${t('yearsTitle')}, ${y0}–${y1}`);
+  $('yearsSub').textContent = raw ? t('yearsSubRaw') : t('yearsSubHarm');
+  $('keyYears').innerHTML = raw
+    ? `<span><i style="border-color:#D8DEC8"></i>${t('kModis')}</span><span><i style="border-color:#E9A23B"></i>${t('kViirs')}</span>`
+    : `<span><i style="border-color:#7FB069"></i>${t('kHarm')}</span><span><i class="band"></i>${t('kBand')}</span><span><i style="border-color:rgba(216,222,200,.5);border-top-style:dashed"></i>${t('kModis')}</span>`;
+  $('capYears').textContent = raw ? t('capRaw') : t('capHarm');
+  document.querySelectorAll('#rawSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === rawMode));
+}
+document.querySelectorAll('#rawSeg button').forEach(b => b.onclick = () => { rawMode = b.dataset.v; chartYears(); });
+
+const STOPS = [[0, [36,64,47]], [.4, [122,106,46]], [.7, [233,162,59]], [1, [228,87,46]]];
+function ramp(t0) { t0 = Math.max(0, Math.min(1, t0));
+  for (let i = 1; i < STOPS.length; i++) if (t0 <= STOPS[i][0]) {
+    const [a, ca] = STOPS[i - 1], [b, cb] = STOPS[i], k = (t0 - a) / (b - a);
+    return `rgb(${ca.map((c, j) => Math.round(c + (cb[j] - c) * k)).join(',')})`; } return 'rgb(228,87,46)'; }
+function chartHeat() {
+  const years = [...new Set(CAL.monthly.map(m => +m.ym.slice(0, 4)))].sort((a, b) => a - b);
+  const W = 360, L0 = 34, R0 = 4, T0 = 16, rowH = Math.max(7, Math.min(11, 270 / years.length)), H = T0 + rowH * years.length + 6;
+  const cw = (W - L0 - R0) / 12, maxV = Math.max(1, ...CAL.monthly.map(m => m.harmonized || 0)), lmax = Math.log1p(maxV);
+  const idx = {}; CAL.monthly.forEach(m => idx[m.ym] = m);
+  let g = '';
+  t('months').forEach((mn, i) => g += `<text x="${L0 + cw * i + cw / 2}" y="10" text-anchor="middle">${esc(mn)}</text>`);
+  years.forEach((y, r) => {
+    const yy = T0 + r * rowH;
+    const lastR = years.length - 1, lab = y % 5 === 0 || r === 0 || (r === lastR && y % 5 > 1);
+    if (lab) g += `<text x="${L0 - 5}" y="${yy + rowH - 1.5}" text-anchor="end">${y}</text>`;
+    for (let mI = 0; mI < 12; mI++) {
+      const m = idx[`${y}-${String(mI + 1).padStart(2, '0')}`]; if (!m) continue;
+      const v = m.harmonized || 0, fill = v > 0 ? ramp(Math.log1p(v) / lmax) : 'rgba(216,222,200,.05)';
+      g += `<rect x="${(L0 + cw * mI + .5).toFixed(1)}" y="${(yy + .5).toFixed(1)}" width="${(cw - 1).toFixed(1)}" height="${(rowH - 1).toFixed(1)}" rx="1.5" fill="${fill}"><title>${esc(t('calTip', m.ym, fmt(v, 1), t('basis')[m.basis] || m.basis))}</title></rect>`;
+    }
+  });
+  const r2012 = years.indexOf(2012);
+  if (r2012 > 0) g += `<line x1="${L0 - 2}" x2="${W - R0}" y1="${T0 + r2012 * rowH}" y2="${T0 + r2012 * rowH}" stroke="rgba(216,222,200,.6)" stroke-dasharray="2 2"/>`;
+  const svg = $('chHeat'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = g;
+  svg.setAttribute('aria-label', `${t('heatTitle')}, ${years[0]}–${years[years.length - 1]}`);
+  $('rampBar').style.background = `linear-gradient(90deg, ${[0, .25, .5, .75, 1].map(ramp).join(',')})`;
+}
+function chartClim() {
+  const C = CAL.climatology || []; if (!C.length) return;
+  const W = 360, H = 200, L0 = 34, R0 = 6, T0 = 22, B0 = 22, iw = W - L0 - R0, ih = H - T0 - B0, cw = iw / 12;
+  const cur = (CAL.current_year && CAL.current_year.months) || [];
+  const ax = niceAxis(Math.max(...C.map(c => c.p90), ...cur.map(c => c.value || 0)) * 1.04), top = ax.top;
+  const Yp = v => T0 + ih - v / top * ih, Xc = mI => L0 + cw * mI + cw / 2;
+  const doy = s => { const [mm, dd] = s.split('-').map(Number); return (mm - 1) + (dd - 1) / 30.5; };
+  let g = '';
+  (CAL.critical_windows || []).forEach((w, i) => {
+    let a = doy(w.from), b = doy(w.to) + 1 / 30.5; if (b < a) b += 12;
+    const x1 = L0 + a * cw, x2 = Math.min(W - R0, L0 + b * cw);
+    g += `<rect x="${x1.toFixed(1)}" y="${T0}" width="${Math.max(2, x2 - x1).toFixed(1)}" height="${ih}" fill="rgba(233,162,59,.16)"/>
+      <text x="${((x1 + x2) / 2).toFixed(1)}" y="${T0 - 6 - (i % 2) * 0}" text-anchor="middle" style="fill:var(--amber);font-size:9.5px">${esc(tx(w, 'label'))}</text>`;
+  });
+  for (let v = 0; v <= top + 1e-9; v += ax.step) { const yy = Yp(v);
+    g += `<line class="grid" x1="${L0}" x2="${W - R0}" y1="${yy}" y2="${yy}"/><text x="${L0 - 5}" y="${yy + 3}" text-anchor="end">${kfmt(v)}</text>`; }
+  C.forEach(c => { const mI = c.month - 1, x = Xc(mI), bw = cw * .5;
+    g += `<rect x="${(x - bw / 2).toFixed(1)}" y="${Yp(c.mean).toFixed(1)}" width="${bw.toFixed(1)}" height="${(T0 + ih - Yp(c.mean)).toFixed(1)}" rx="2" fill="rgba(216,222,200,.32)"><title>${esc(t('monthsLong')[mI])}: ${fmt(c.mean, 1)} (${fmt(c.p10, 1)}–${fmt(c.p90, 1)})</title></rect>
+      <line x1="${x}" x2="${x}" y1="${Yp(c.p10)}" y2="${Yp(c.p90)}" stroke="#D8DEC8" stroke-width="1.4"/>
+      <line x1="${x - 4}" x2="${x + 4}" y1="${Yp(c.p90)}" y2="${Yp(c.p90)}" stroke="#D8DEC8" stroke-width="1.4"/>
+      <line x1="${x - 4}" x2="${x + 4}" y1="${Yp(c.p10)}" y2="${Yp(c.p10)}" stroke="#D8DEC8" stroke-width="1.4"/>
+      <text x="${x}" y="${H - 7}" text-anchor="middle">${esc(t('months')[mI])}</text>`; });
+  g += `<line class="ax" x1="${L0}" x2="${W - R0}" y1="${T0 + ih}" y2="${T0 + ih}"/>`;
+  const curPts = cur.filter(c => c.value != null).map(c => [Xc(c.month - 1), Yp(c.value), c]);
+  if (curPts.length > 1) g += `<path d="${curPts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('')}" fill="none" stroke="#E4572E" stroke-width="1.4" opacity=".6"/>`;
+  curPts.forEach(([x, y, c]) => g += `<circle cx="${x}" cy="${y}" r="${Math.abs(c.z || 0) >= 1.5 ? 5 : 3.5}" fill="#E4572E" stroke="${Math.abs(c.z || 0) >= 1.5 ? '#fff' : 'none'}" stroke-width="1.5"><title>${CAL.current_year.year}, ${esc(t('monthsLong')[c.month - 1])}: ${fmt(c.value, 1)}, z = ${fmt(c.z, 1)}</title></circle>`);
+  const svg = $('chClim'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = g;
+  svg.setAttribute('aria-label', t('climTitle'));
+  const yr = (CAL.current_year && CAL.current_year.year) || YEAR_NOW();
+  $('climSub').textContent = t('climSub', yr);
+  $('keyClim').innerHTML = `<span><i class="bar"></i>${t('kMean')}</span><span><i style="border-color:#D8DEC8;width:2px;height:10px;border-top:0;border-left:2px solid #D8DEC8"></i>${t('kRange')}</span>`
+    + `<span><i class="dot"></i>${esc(t('kNow', yr))}</span>` + ((CAL.critical_windows || []).length ? `<span><i class="win"></i>${t('kWin')}</span>` : '');
+}
+function renderCheck() {
+  const v = CAL.validation || {}, p = CAL.pairs || {};
+  $('check').innerHTML = `
+    <div><span>${t('vMape')}</span><b>${v.yearly_mape != null ? fmt(v.yearly_mape, 0) + '%' + (v.yearly_naive_mape != null ? ' <small>(' + fmt(v.yearly_naive_mape, 0) + '%)</small>' : '') : (v.mape != null ? fmt(v.mape * (v.mape <= 1.5 ? 100 : 1), 0) + '%' : '—')}</b></div>
+    <div><span>${t('vR2')}</span><b>${fmt(v.yearly_r2 ?? v.r2, 2)}</b></div>
+    <div><span>${t('vPairs')}</span><b>${p.match_rate != null ? fmt(p.match_rate * (p.match_rate <= 1 ? 100 : 1), 0) + '%' : '—'}</b></div>
+    <div><span>${t('vRatio')}</span><b>${fmt(p.viirs_per_modis, 1)}</b></div>
+    <p>${esc(t('vText', {validation:{method:v.method, n:v.n ?? '—'}, pairs:{median_offset_m:fmt(p.median_offset_m)}}))}</p>`;
+}
+function renderCalendar() {
+  if (!CAL) return;
+  $('calEmpty').hidden = true; $('calBody').hidden = false;
+  const ys = CAL.monthly.map(m => +m.ym.slice(0, 4));
+  $('calLead').textContent = t('calLead', Math.min(...ys), Math.max(...ys));
+  chartYears(); chartHeat(); chartClim(); renderCheck();
+  const ins = (LANG === 'en' && CAL.insights_en) || CAL.insights || [];
+  $('insights').innerHTML = ins.map(s => `<li>${esc(s)}</li>`).join('');
+}
+
+/* ================= loop ================= */
+function renderAll() {
+  renderMap(); renderChips(); renderSeason(); if (MODE === 'station') renderHead();
+  renderTele(); renderVerdict(); renderPlaces(); renderLog(); renderAlarm(); renderLegend();
+}
+async function poll() {
+  try {
+    const r = await fetch('/api/state', {cache:'no-store'});
+    if (!r.ok) throw new Error(r.status);
+    S = await r.json();
+    online = true; $('offline').hidden = true;
+    const d = S.now ? new Date(S.now) : new Date();
+    $('clock').textContent = d.toLocaleString(t('locale'), {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    renderAll();
+    if (!fittedOnce) { fittedOnce = true; if (MODE === 'station' && !(S.mission && S.mission.phase !== 'done')) fitAll(); }
+    if (!S.mission || S.mission.phase === 'done' || MODE !== 'station') $('follow').hidden = true;
+  } catch {
+    online = false; $('offline').hidden = false;
+  }
+}
+applyStatic();
+$('title').textContent = t('connecting');
+setMode(new URLSearchParams(location.search).get('tab') === 'calendar' ? 'calendar' : 'station');
+poll(); setInterval(poll, 500);
+addEventListener('resize', () => { if (MODE === 'station' && !(S && S.mission && S.mission.phase !== 'done')) fitAll(); });
+</script>
+</body>
+</html>

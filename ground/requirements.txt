@@ -1,0 +1,6 @@
+requests>=2.31
+numpy>=1.26
+Pillow>=10.0
+pymavlink>=2.4.41
+pandas>=2.0
+matplotlib>=3.8
