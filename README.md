@@ -69,6 +69,11 @@ hackathon (14–15 Nov 2026), after mentor feedback, we added: operator-in-the-l
 an on-board sensor module, the industrial-source mask, the MODIS–VIIRS correlation analysis, base planning and the
 one-click web demo. See the commit history.
 
+## Use of AI
+Code, data analysis scripts, texts and slides in this repository were written with the help of Claude (Anthropic), an AI
+assistant, and reviewed and run by the team. All numbers and figures come from NASA FIRMS data processed by these scripts;
+no AI-generated images are presented as real data. The drone video in the demo is a simulation (satellite image + thermal model).
+
 ---
 
 ## Українською коротко
