@@ -105,3 +105,49 @@
 - The naive splice shows a ×4.4 jump that is a sensor artefact.
 - The fire season is 2 March – 28 April (spring grass and stubble burning): March and April give 63% of all yearly hotspots.
 - 893 grid cells (~2 × 1.5 km) burned in at least 5 different years. These are priority patrol spots for the drone station.
+
+## Sensor characteristics (payload) and what they mean for harmonization
+
+Added on 14 Nov 2026 after mentor feedback ("check the payload specs of the satellites").
+
+| | MODIS (Terra, Aqua) | VIIRS 375 m (S-NPP, NOAA-20, NOAA-21) |
+|---|---|---|
+| Orbit | ~705 km, Aqua ~13:30 local, Terra ~10:30 | ~824 km, ~13:30 local |
+| Swath | 2330 km | 3060 km |
+| Fire pixel at nadir | 1 km (bands 21/22 ≈ 4 µm, 31 ≈ 11 µm) | 375 m (I4 3.74 µm, I5 11.5 µm) |
+| Pixel off-nadir | grows toward the scan edge | grows less (aggregation and bow-tie deletion) |
+
+FIRMS gives the real pixel size of every detection in the `scan` and `track` fields. In our Zakarpattia archive
+(`harmonize/sensor_check.py`):
+
+* MODIS fire-pixel area: median 1.32 km², 90th percentile 3.1 km², maximum 9.6 km²; 22 % of MODIS detections
+  have a pixel more than twice the nadir size. VIIRS: median 0.19 km², maximum 0.62 km².
+* Does the viewing geometry bias our monthly VIIRS/MODIS ratio? We took the log ratio of each month (2012–2025,
+  months with ≥ 5 MODIS hotspots), removed the calendar-month mean and correlated the residual with the mean pixel
+  area of that month: r = −0.05 for MODIS and 0.07 for VIIRS. So, at monthly scale, scan geometry does not explain the
+  noise; per-month ratios are not biased by it. Per-detection matching still uses the 1.5 km radius, which covers
+  the median MODIS pixel.
+* Day/night: 99 % of MODIS detections here are daytime, against 89 % for VIIRS (VIIRS 375 m sees many more small
+  night fires). A day-only harmonization is a natural next test.
+
+Sources: NASA Earthdata, VIIRS I-Band 375 m Active Fire Data (attribute table: scan and track reflect actual pixel size);
+FIRMS MCD14DL NRT product page (1 km at nadir); MOD14 product page, LAADS DAAC; Schroeder et al. 2014, RSE 143, 85–96.
+
+
+## Risk and uncertainty maps (Random Forest)
+
+Added on 14 Nov 2026 after mentor feedback (risk heat map + uncertainty map as the basis for drone priority).
+`harmonize/risk_model.py`: 0.02° grid (~2 km) within 35 km of base towns; target = a VIIRS S-NPP vegetation hotspot in the
+cell during a month. Features use only earlier years: share of past years the cell (and its 3×3 neighbourhood) burned in
+that month and in any month, whether it burned in that month last year, month (sin/cos), latitude, longitude.
+Trained on 2014–2022, tested ahead in time on 2023–2025: ROC AUC 0.84 (history-only baseline 0.671),
+average precision 0.02 vs 0.013; the riskiest 5 % of cells catch 39 % of
+test fires (38 % for history only). Fires are rare (0.22 % of cell-months), so precision stays low:
+the map says where to look, not where a fire will be. Uncertainty = standard deviation of the 200 trees' probabilities.
+The final model (2014–2025) gives a month-by-month forecast for 2027; the station uses the current month's risk in priority.
+
+Notes on mentor questions: Terra, Aqua, S-NPP, NOAA-20 and NOAA-21 are polar orbiters with 2330–3060 km swaths, so each
+passes over Zakarpattia about twice a day; the multi-day revisit applies to high-resolution imagers (Landsat, Sentinel-2).
+Gaps in our record come from clouds and fires that are not burning at overpass time, not from revisit. Day-of-week check
+(VIIRS S-NPP 2012–2026): Monday 16.4 %, Saturday 15.8 %, Wednesday/Thursday 12.5–12.6 % (uniform = 14.3 %) — a human
+weekend-burning signal, not an overpass artefact. Gap-filling of cloudy days is a next step.

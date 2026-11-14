@@ -18,7 +18,7 @@ from datetime import date, timedelta
 
 import requests
 
-KEY = os.environ.get("FIRMS_MAP_KEY", "")  # задай свій ключ: set FIRMS_MAP_KEY=...
+KEY = os.environ.get("FIRMS_MAP_KEY", "")
 BBOX = "22.1,47.9,24.7,49.1"
 API = "https://firms.modaps.eosdis.nasa.gov/api/area/csv/{key}/{src}/{bbox}/{days}/{d}"
 HERE = os.path.dirname(os.path.abspath(__file__))
