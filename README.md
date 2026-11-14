@@ -1,154 +1,82 @@
-# Zakarpattia Orbit v2 — календар горіння NASA + дрон-перевірка
+# Zakarpattia Orbit
 
-NASA Space Apps Challenge 2026, задача «Harmonization of MODIS and VIIRS Hot Spots». Участь онлайн. Автор: Serhii Medulych (Сергій Медулич), Закарпаття.
+NASA Space Apps Challenge 2026 · challenge **Harmonization of MODIS and VIIRS Hot Spots** · team Zakarpattia Orbit (Serhii Medulych, Zakarpattia, Ukraine; Kyiv local event, online).
 
-**Що нового у v2:**
-- **Календар горіння Закарпаття 2001–2026.** Архів NASA FIRMS: MODIS (з 2001) і VIIRS (з 2012) зведені в один
-  ряд без «сходинки» 2012 року (VIIRS бачить у 3.4 раза більше точок). Перевірка: річна похибка 10% проти 74% без
-  гармонізації. Методика — `harmonize/METHODOLOGY.md`.
-- **Історія кожної точки:** скільки днів і років тут горіло з 2001 року → пріоритет вильоту.
-- **Батарея перед вильотом:** дрон не летить, якщо після польоту лишиться < 20%.
-- **Тривога на станції** зі звуком і кнопкою «Скопіювати для ДСНС».
-- **Маршрут для пожежних** справжніми дорогами (OSRM) від пожежної частини міста бази.
-- **Журнал місій**, перемикач **UA / EN** для онлайн-суддів.
+**Live demo, one click, no install:** https://kolok2008.github.io/zakarpattia-orbit/
+(the station replays a real NASA FIRMS day, 22 March 2025; the drone takes off by itself, you act as the operator).
 
-## Запуск
+## What it does
+
+1. **Harmonization.** The full NASA FIRMS archive for Zakarpattia (2001–2026): MODIS (1 km) and VIIRS (375 m) are merged
+   into one consistent monthly series. VIIRS sees 3.4× more hotspots, so a naive record jumps 4.4× in 2012. We pair
+   same-orbit detections (Aqua MODIS ↔ S-NPP VIIRS, ≤ 1.5 km, ≤ 60 min), learn a VIIRS/MODIS ratio for each calendar
+   month and convert MODIS-only years. Leave-one-year-out check: yearly error **10 %** (74 % without harmonization), R² 0.95.
+   NOAA-20/21 are calibrated to S-NPP so the record continues. Method: `harmonize/METHODOLOGY.md`.
+2. **Correlation of the two datasets** (`harmonize/correlation.py`, figure `submission/figs/d_correlation.png`):
+   12×12 month-by-month correlation matrix MODIS × VIIRS; Pearson r = 0.97 for monthly counts, 0.93 yearly,
+   0.92 across 10 km cells (Spearman 0.94).
+3. **Burning calendar**: year × month heatmap, typical year, the March–April window (63 % of hotspots), 893 cells that burned
+   in 5+ different years.
+4. **Planning** (`harmonize/planning.py`): 13 town drone bases with a 15 km radius cover 62 % of VIIRS hotspots and 65 % of
+   repeat-burning sites; three candidate new bases would raise coverage to 80 %.
+5. **Risk and uncertainty maps** (`harmonize/risk_model.py`): Random Forest on the burning history (2 km cells);
+   tested ahead in time on 2023–2025, ROC AUC 0.84 vs 0.671 for history alone. Uncertainty is the spread of
+   200 trees. Both are shown in the Calendar tab (month by month for 2027) and risk feeds drone priority.
+6. **Known industrial heat sources are ignored** (`harmonize/build_static_mask.py`): 106 sites from NASA's own
+   `type = 2` flag (factory stacks, flares). The station never sends a drone there.
+7. **Response with a human in the loop.** New hotspot → notification (console / Telegram bot) → the drone **takes off by
+   itself** (ArduPilot over MAVLink: TAKEOFF → WAYPOINT → LOITER → RTL) → the operator watches the drone's own day / thermal
+   video and presses **Forest fire / Field burning / False alarm** → the drone **returns and lands by itself**.
+   A forest fire raises an alarm with a road route from the fire station (OSRM) and a ready message for the fire service.
+
+Honest limits: satellite data reach FIRMS **1–3 hours** after the overpass (ultra-real-time is only for the US/Canada), so the
+system suits wildfires and grass burning, not urban emergencies. Monthly counts are noisy (69 % monthly error; correlation is
+weakest in January and June when there are few hotspots). The flight and the video in the demo are simulated; NASA data are real.
+
+## Run the full station locally
 
 ```
 cd ground
 pip install -r requirements.txt
-python server.py
+python server.py                  # live NASA data (set FIRMS_MAP_KEY), simulated drone
+python server.py --sample         # offline
+python server.py --auto-operator  # demo without a person: decision taken from the system hint
 ```
-Відкриється http://localhost:8000. Вкладки «Станція» і «Календар горіння». Англійська: http://localhost:8000/?lang=en
+Open http://localhost:8000 (English: `?lang=en`). Telegram: set `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID`.
+Real drone: `ground/drone_mission.py` uploads the mission to ArduPilot / SITL over MAVLink (`MAVLINK_URL` in `config.py`).
 
-## Перебудувати календар (не обов'язково — готовий лежить у data/calendar.json)
+## Rebuild the data
 
 ```
-pip install pandas matplotlib
-python harmonize/fetch_archive.py     # або розпакуй data/raw.zip у data/raw
-python harmonize/build_calendar.py    # також оновить графіки в submission/figs
+pip install pandas matplotlib scikit-learn
+python harmonize/fetch_archive.py      # or unzip data/raw.zip into data/raw
+python harmonize/build_calendar.py     # harmonization, calendar, figures a–c
+python harmonize/correlation.py        # correlation matrix, figure d
+python harmonize/build_static_mask.py  # industrial sources
+python harmonize/planning.py           # base coverage and candidates
+python harmonize/sensor_check.py       # pixel size (scan × track) and day/night check
+python harmonize/risk_model.py         # risk + uncertainty maps (~2 min)
+python ground/build_demo.py            # static demo into docs/ (GitHub Pages)
 ```
+
+## Data
+NASA FIRMS: MODIS Collection 6.1 (Terra, Aqua) and VIIRS 375 m (Suomi NPP, NOAA-20, NOAA-21), standard archive and near real-time.
+Map imagery: Esri World Imagery. Roads: OpenStreetMap + OSRM.
+
+## Timeline
+A first prototype (archive download, first harmonization, station) was made before the hackathon weekend. During the
+hackathon (14–15 Nov 2026), after mentor feedback, we added: operator-in-the-loop with automatic take-off/landing instead of
+an on-board sensor module, the industrial-source mask, the MODIS–VIIRS correlation analysis, base planning and the
+one-click web demo. See the commit history.
 
 ---
 
+## Українською коротко
 
-NASA Space Apps Challenge 2026, Київ (КАІ), 14–15 листопада.
-Задача: «Гармонізація гарячих точок MODIS та VIIRS».
+Демо в один клік: https://kolok2008.github.io/zakarpattia-orbit/ . Повна станція: `cd ground && python server.py`.
+Схема v3 (після порад менторів 14.11): дрон сам злітає і сідає, рішення приймає оператор за відео денної/теплової
+камери дрона; окремий модуль ESP32 на дроні не потрібен (опис старого модуля — `firmware/README_UA.md`).
+Заводські труби (NASA type 2) не перевіряються. Затримка супутникових даних 1–3 год: система для природних пожеж і
+палів трави, не для міських надзвичайних ситуацій.
 
-**Ідея:** супутник NASA (FIRMS) бачить гарячу точку → дрон летить на координати →
-модуль міряє CO, температуру, тепловізором шукає вогонь і фотографує →
-програма каже: лісова пожежа, спалювання поля чи хибна тривога.
-
-## Структура
-
-```
-zakarpattia-orbit/
-├── firmware/fire_module/     прошивка модуля ESP32-CAM (Arduino IDE)
-│   ├── fire_module.ino
-│   └── config.h              Wi-Fi, піни, пороги тривоги
-└── ground/                   програма наземної станції (Python)
-    ├── main.py               головний скрипт
-    ├── config.py             ключ FIRMS, база дрона, IP модуля
-    ├── firms.py              гарячі точки NASA FIRMS
-    ├── drone_mission.py      маршрут дрону через MAVLink (ArduPilot / SITL)
-    ├── module_client.py      зв'язок з модулем (або імітація)
-    ├── classifier.py         аналіз: датчики + фото -> висновок
-    ├── report.py             HTML-звіт з картою для презентації
-    └── sample_data/          справжня точка VIIRS NOAA-21 від 02.11.2026
-```
-
-## Головне: живий сайт наземної станції
-
-```
-cd ground
-python server.py
-```
-Відкриється http://localhost:8000. Що відбувається:
-- програма бере живі гарячі точки NASA (VIIRS + MODIS, 5 днів) і об'єднує ті, що поруч;
-- кожній точці призначає **найближчу базу дронів** у місті (13 баз: Ужгород, Мукачево, Берегове, Хуст, Рахів...), якщо вона в радіусі `MAX_RANGE_KM`;
-- дрон сам вилітає до першої точки: зліт → політ → зниження → огляд → повернення → посадка;
-- на сайті видно, як він летить, висоту, швидкість, батарею, час до кінця і як змінюються показання датчиків;
-- після огляду з'являється висновок. Будь-яку іншу точку можна перевірити кнопкою «Відправити дрон».
-
-Режими: `--scenario field` / `--scenario false` (що імітує модуль), `--module` (справжній ESP32-CAM),
-`--sample` (без інтернету), `--no-auto` (не вилітати самому).
-Симуляція йде в `SIM_SPEEDUP` разів швидше за реальний час — на сайті це позначено.
-
-## Крок 1. Звіт однією командою (старий режим)
-
-1. Відкрий папку `zakarpattia-orbit` у VS Code.
-2. У `ground/config.py` встав MAP_KEY з листа NASA FIRMS і координати бази дрона.
-3. У терміналі VS Code:
-   ```
-   cd ground
-   pip install -r requirements.txt
-   python main.py            # живі дані NASA за 5 днів
-   start report.html
-   ```
-
-Що робить програма:
-- бере всі гарячі точки VIIRS і MODIS над Закарпаттям за `DAY_RANGE` днів;
-- **гармонізує** їх: точки ближче `CLUSTER_KM` вважає одним місцем і позначає «бачили кілька разів» (це і є задача хакатону);
-- обирає ціль: спершу підтверджені кількома проходами, потім найсвіжіші, потім найближчі в радіусі `MAX_RANGE_KM`;
-- будує маршрут дрона, отримує дані модуля (поки імітація — у звіті це чесно позначено) і робить висновок.
-
-## Крок 2. Інші режими
-
-```
-python main.py --watch            # спостереження: оновлення кожні WATCH_MINUTES хв, звіт сам перезавантажується
-python main.py --scenario field   # що імітує модуль: fire / field / false
-python main.py --sample           # без інтернету: збережена точка NASA від 02.11.2026
-```
-
-## Крок 3. Модуль ESP32-CAM
-
-### Підключення
-
-| Модуль | Пін модуля | ESP32-CAM |
-| --- | --- | --- |
-| BME280 | VCC / GND | 3.3V / GND |
-| BME280 | SDA / SCL | GPIO14 / GPIO15 |
-| MLX90640 (якщо є) | SDA / SCL | GPIO14 / GPIO15 (та сама шина I2C) |
-| GPS NEO-6M | VCC / GND | 5V / GND |
-| GPS NEO-6M | TX | GPIO13 |
-| MQ-7 | VCC / GND | 5V / GND |
-| MQ-7 | DOUT | GPIO2 **через дільник** 10 кОм + 20 кОм (5V → 3.3V) |
-
-Важливо:
-- MQ-7 живиться від 5V, тому його вихід — 5V. Без дільника можна спалити ESP32.
-- MQ-7 треба прогріти 1–2 хв (краще 24 год при першому запуску). Поріг спрацювання крутиш потенціометром на модулі.
-- Аналогові піни ESP32-CAM не працюють разом із Wi-Fi, тому MQ-7 підключений цифровим виходом. Точні значення CO — з модулем ADS1115 (I2C), це покращення на потім.
-- Під час прошивки від'єднай MQ-7 від GPIO2, якщо прошивка не заливається.
-
-### Прошивка
-
-1. Arduino IDE → Boards Manager → **esp32 by Espressif**.
-2. Library Manager: **Adafruit BME280 Library**, **TinyGPSPlus**, (якщо є тепловізор) **Adafruit MLX90640**.
-3. У `config.h` впиши Wi-Fi (можна роздати з телефону) і `USE_MLX90640`.
-4. Плата: **AI Thinker ESP32-CAM**, залий скетч.
-5. Serial Monitor (115200) покаже IP модуля. Перевір у браузері: `http://IP/data` і `http://IP/capture`.
-6. IP впиши в `ground/config.py` → `MODULE_URL`.
-7. `python main.py --module` — справжні дані модуля.
-
-**Тест:** обережно, на вулиці, піднеси модуль до свічки чи тліючого паперу — CO і температура ростуть, `alarm` стає `true`, блимає спалах.
-
-## Крок 4. Політ у симуляторі
-
-1. Встанови ArduPilot SITL (найпростіше — через WSL на Windows) і Mission Planner.
-2. Запусти SITL коптера з домашньою точкою на базі:
-   `sim_vehicle.py -v ArduCopter -l 48.45,22.95,120,0 --out=udp:127.0.0.1:14550`
-3. `python main.py --demo fire --fly` — дрон злітає, летить до точки NASA, знижується, оглядає 30 с і повертається.
-
-При втраті зв'язку параметр `FS_GCS_ENABLE=1` повертає дрон на базу: GPS працює без мобільної мережі, координати бази записані ще перед злетом.
-
-## Що покращимо з фінансуванням
-
-Тепловізор, CO₂ (SCD41), датчик диму PM2.5, 4G (LILYGO T-SIM7600) + LoRa, ШІ на борту (Raspberry Pi 5 / Jetson Orin Nano),
-навчена модель розпізнавання вогню й диму (YOLO), карта землекористування (ліс/поле), дрон-літак.
-
-## Статус
-
-- Python-частина перевірена в демо-режимі (3 сценарії).
-- Прошивку ще не компілювали і не перевіряли на справжній платі. Перша збірка може потребувати дрібних виправлень.
-- Політ у SITL ще не перевіряли: потрібен встановлений симулятор.
-- «ШІ» зараз — правила + аналіз кольору фото. Справжня навчена модель — наступний крок.
+License: MIT.
