@@ -1,0 +1,21 @@
+{
+ "modis": {
+  "pixel_area_km2_median": 1.32,
+  "p90": 3.08,
+  "max": 9.6,
+  "share_over_2x_nadir": 0.224,
+  "day_share": 0.987
+ },
+ "viirs_snpp": {
+  "pixel_area_km2_median": 0.192,
+  "p90": 0.31,
+  "max": 0.62,
+  "share_over_2x_nadir": 0.16,
+  "day_share": 0.892
+ },
+ "monthly_ratio_residual_vs_area": {
+  "n_months": 69,
+  "r_modis_area": -0.047,
+  "r_viirs_area": 0.071
+ }
+}

@@ -1,0 +1,111 @@
+{
+ "source": "VIIRS S-NPP standard archive 2012–2026, vegetation (type 0)",
+ "radius_km": 15.0,
+ "region": "hotspots within 35 km of a base town (proxy for Zakarpattia oblast)",
+ "hotspots": 9482,
+ "covered_share": 0.616,
+ "spring_share": 0.698,
+ "repeat_cells": 635,
+ "repeat_cells_covered_share": 0.652,
+ "per_base": [
+  {
+   "id": "muk",
+   "name": "Мукачево",
+   "hotspots": 1082,
+   "spring_share": 0.69
+  },
+  {
+   "id": "tya",
+   "name": "Тячів",
+   "hotspots": 812,
+   "spring_share": 0.88
+  },
+  {
+   "id": "ber",
+   "name": "Берегове",
+   "hotspots": 628,
+   "spring_share": 0.47
+  },
+  {
+   "id": "khu",
+   "name": "Хуст",
+   "hotspots": 483,
+   "spring_share": 0.92
+  },
+  {
+   "id": "irs",
+   "name": "Іршава",
+   "hotspots": 481,
+   "spring_share": 0.78
+  },
+  {
+   "id": "uzh",
+   "name": "Ужгород",
+   "hotspots": 479,
+   "spring_share": 0.4
+  },
+  {
+   "id": "vol",
+   "name": "Воловець",
+   "hotspots": 439,
+   "spring_share": 0.74
+  },
+  {
+   "id": "vyn",
+   "name": "Виноградів",
+   "hotspots": 380,
+   "spring_share": 0.47
+  },
+  {
+   "id": "svl",
+   "name": "Свалява",
+   "hotspots": 314,
+   "spring_share": 0.84
+  },
+  {
+   "id": "per",
+   "name": "Перечин",
+   "hotspots": 290,
+   "spring_share": 0.9
+  },
+  {
+   "id": "mzh",
+   "name": "Міжгір'я",
+   "hotspots": 260,
+   "spring_share": 0.71
+  },
+  {
+   "id": "vbe",
+   "name": "Великий Березний",
+   "hotspots": 171,
+   "spring_share": 0.8
+  },
+  {
+   "id": "rak",
+   "name": "Рахів",
+   "hotspots": 24,
+   "spring_share": 0.71
+  }
+ ],
+ "proposed_bases": [
+  {
+   "lat": 48.425,
+   "lon": 22.375,
+   "adds_hotspots": 1140,
+   "adds_share": 0.12
+  },
+  {
+   "lat": 48.925,
+   "lon": 22.975,
+   "adds_hotspots": 307,
+   "adds_share": 0.032
+  },
+  {
+   "lat": 48.275,
+   "lon": 23.575,
+   "adds_hotspots": 290,
+   "adds_share": 0.031
+  }
+ ],
+ "covered_share_with_proposed": 0.799
+}
