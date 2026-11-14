@@ -1,10 +1,14 @@
 """Наземна станція Zakarpattia Orbit — живий сайт.
 
   python server.py                    # живі дані NASA, дрон-симуляція, відкриє браузер
-  python server.py --scenario field   # що імітує модуль: fire / field / false
-  python server.py --module           # брати показання зі справжнього модуля ESP32-CAM
+  python server.py --scenario field   # що «бачить» тепловізор у симуляції: fire / field / false
+  python server.py --auto-operator    # демо без людини: рішення бере з підказки системи
   python server.py --sample           # без інтернету: збережена точка NASA
   python server.py --no-auto          # не відправляти дрон автоматично
+
+Схема v3: нова точка NASA -> сповіщення -> дрон сам злітає (ArduPilot) -> відео денної/теплової
+камери дрона оператору -> оператор натискає «Пожежа / Палять поле / Хибна тривога» -> дрон сам
+повертається і сідає. Відомі промислові джерела (труби заводів) не перевіряються.
 
 Відкрий http://localhost:8000
 """
@@ -19,9 +23,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import config
 import firms
-from mission import Mission, nearest_base, run_mission, verdict_json
-from station_extras import (BATTERY_RESERVE_PCT, Calendar, fire_route, mission_battery_left,
-                            priority)
+import notify
+from mission import FIRE, Mission, nearest_base, run_mission
+from station_extras import (BATTERY_RESERVE_PCT, Calendar, RiskMap, StaticSources, fire_route,
+                            mission_battery_left, priority)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WEB = os.path.join(HERE, "web", "index.html")
@@ -38,6 +43,8 @@ class Station:
         self.source, self.source_note, self.updated_at = "sample", "", ""
         self.mission = None
         self.calendar = Calendar()
+        self.static = StaticSources()
+        self.risk = RiskMap()
         self.alarm = None
         self.log = []
         self.stop = threading.Event()
@@ -74,6 +81,13 @@ class Station:
             left = mission_battery_left(d) if base else None
             places[-1]["battery_left_pct"] = left
             places[-1]["battery_ok"] = base is not None and left >= BATTERY_RESERVE_PCT
+            places[-1]["risk"] = self.risk.at(c.lat, c.lon)
+            if places[-1]["risk"] and places[-1]["priority"] == "normal" and places[-1]["risk"]["risk"] >= 0.2:
+                places[-1]["priority"] = "high"
+            st = self.static.near(c.lat, c.lon)
+            places[-1]["static_source"] = st
+            if st:
+                places[-1]["priority"] = "low"
         with self.lock:
             self.places, self.clusters = places, cmap
             self.source, self.source_note = source, note
@@ -92,30 +106,40 @@ class Station:
             place = next((p for p in self.places if p["id"] == place_id), None)
             if place is None:
                 return {"ok": False, "error": "Такої точки вже немає в даних NASA."}
+            if place.get("static_source"):
+                return {"ok": False, "error": "Це відоме промислове джерело тепла (NASA type 2) — дрон не потрібен."}
             if place["base_id"] is None:
                 return {"ok": False, "error": f"Точка за {place['dist_km']} км від найближчої бази — поза радіусом."}
             if not place.get("battery_ok", True):
                 return {"ok": False, "error": f"Не вистачить батареї: після польоту лишиться {place['battery_left_pct']}%, потрібно ≥ {BATTERY_RESERVE_PCT:.0f}%."}
             base = next(b for b in config.BASES if b["id"] == place["base_id"])
-            self.mission = Mission(place, base, self.args.scenario, self.args.module)
+            self.mission = Mission(place, base, self.args.scenario, self.args.auto_operator)
+            self.mission.on_operator_needed = self.on_operator_needed
             self.thread = threading.Thread(target=run_mission, args=(self.mission, self.stop, self.on_done), daemon=True)
             self.thread.start()
-        print(f"[ДРОН] з бази {base['name']} до {place['lat']}, {place['lon']} ({place['dist_km']} км)")
+        notify.send(f"Нова точка NASA {place['lat']:.4f}, {place['lon']:.4f} ({', '.join(place['sensors'])}). "
+                    f"Дрон з бази {base['name']} автоматично вилетів, {place['dist_km']} км.")
         return {"ok": True}
 
+    def on_operator_needed(self, m: Mission) -> None:
+        notify.send(f"Дрон над точкою {m.place['lat']:.4f}, {m.place['lon']:.4f}. Оператор, глянь відео "
+                    f"і натисни: Пожежа / Палять поле / Хибна тривога.")
+
+    def decide(self, label: str) -> dict:
+        with self.lock:
+            m = self.mission
+            if m is None or m.phase != "inspect":
+                return {"ok": False, "error": "Зараз дрон не над точкою."}
+            with m.lock:
+                ok = m.decide(label)
+        return {"ok": ok} if ok else {"ok": False, "error": "Рішення вже прийнято."}
+
     def on_done(self, m: Mission) -> None:
-        vj = verdict_json(m.verdict)
-        hist = m.place.get("history") or {}
-        if vj and hist.get("recurrence") == "often":
-            vj["reasons"].append(f"історія NASA: тут горіло {hist['fire_days']} днів за {hist['years']} різних років — типове місце спалювання")
-            vj["reasons_en"].append(f"NASA history: {hist['fire_days']} fire days in {hist['years']} different years here — a typical burning site")
-        elif vj and hist.get("recurrence") == "first":
-            vj["reasons"].append("історія NASA: з 2001 року тут не було жодної гарячої точки — нетипово")
-            vj["reasons_en"].append("NASA history: no hotspot here since 2001 — unusual")
+        vj = m.verdict
         now = datetime.now().strftime("%H:%M")
         alarm = None
-        if m.verdict and m.verdict.label == "ЛІСОВА ПОЖЕЖА":
-            alarm = {"place_id": m.place["id"], "title": vj["title"], "color": vj["color"],
+        if vj and vj["label"] == FIRE:
+            alarm = {"place_id": m.place["id"], "title": vj["title"], "title_en": vj["title_en"], "color": vj["color"],
                      "lat": m.place["lat"], "lon": m.place["lon"], "base_name": m.base["name"],
                      "at": now, "acknowledged": False,
                      "route": fire_route(m.base, m.place["lat"], m.place["lon"])}
@@ -125,20 +149,25 @@ class Station:
                 self.alarm = alarm
             self.log.insert(0, {"at": now, "place_id": m.place["id"], "base_name": m.base["name"],
                                 "lat": m.place["lat"], "lon": m.place["lon"],
-                                "title": vj["title"] if vj else "—", "color": vj["color"] if vj else "#9FAA94",
-                                "confidence": vj["confidence"] if vj else 0,
+                                "label": vj["label"] if vj else None, "by": vj["by"] if vj else None,
+                                "title": vj["title"] if vj else "—", "title_en": vj["title_en"] if vj else "—",
+                                "color": vj["color"] if vj else "#9FAA94",
                                 "flight_min": round(m.t / 60, 1), "battery_end_pct": round(m.battery, 1)})
             del self.log[50:]
         if alarm:
-            print(f"[ТРИВОГА] {vj['title']} {m.place['lat']}, {m.place['lon']} — маршрут {alarm['route']['distance_km']} км")
-        print(f"[ДРОН] повернувся на базу {m.base['name']}. Висновок: {m.verdict.label if m.verdict else '—'}")
+            r = alarm["route"]
+            notify.send(f"ТРИВОГА: лісова пожежа {m.place['lat']:.5f}, {m.place['lon']:.5f}. "
+                        f"Пожежна частина {r.get('from_name')}: {r.get('distance_km')} км. "
+                        f"https://maps.google.com/?q={m.place['lat']:.5f},{m.place['lon']:.5f}")
+        print(f"[ДРОН] повернувся на базу {m.base['name']}. Рішення: {vj['title'] if vj else '—'}")
         if not self.args.no_auto:  # за 15 с — до наступної неперевіреної точки
             threading.Timer(15, self.auto_dispatch).start()
 
     def auto_dispatch(self) -> None:
         """Перша непідтверджена точка в радіусі: спершу бачені кількома проходами, потім найсвіжіші."""
         with self.lock:
-            todo = [p for p in self.places if p["base_id"] and p.get("battery_ok") and p["id"] not in self.results]
+            todo = [p for p in self.places if p["base_id"] and p.get("battery_ok") and not p.get("static_source")
+                    and p["id"] not in self.results]
             rank = {"high": 0, "normal": 1, "low": 2}
             todo.sort(key=lambda p: (rank.get(p.get("priority"), 1), not p["confirmed"]))
         if todo and not self.busy():
@@ -153,6 +182,8 @@ class Station:
                 q = dict(p)
                 if m is not None and m.place["id"] == p["id"] and m.phase != "done":
                     q["status"] = "flying"
+                elif p.get("static_source"):
+                    q["status"] = "industrial"
                 elif p["id"] in self.results:
                     q["status"] = "checked"
                 elif p["base_id"] is None:
@@ -173,6 +204,7 @@ class Station:
                 "speedup": config.SIM_SPEEDUP, "range_km": config.MAX_RANGE_KM,
                 "bases": bases, "places": places, "mission": mstate,
                 "alarm": self.alarm, "log": self.log, "season": self.calendar.season(),
+                "static_sources": len(self.static.sites), "operator_timeout_s": config.OPERATOR_TIMEOUT_S,
             }
 
     def ack_alarm(self) -> dict:
@@ -208,6 +240,12 @@ def make_handler(st: Station):
                     self.send(500, "web/index.html не знайдено".encode(), "text/plain; charset=utf-8")
             elif route == "/api/state":
                 self.json(st.state())
+            elif route == "/api/correlation":
+                try:
+                    with open(os.path.join(HERE, "..", "data", "correlation.json"), encoding="utf-8") as f:
+                        self.json(json.load(f))
+                except OSError:
+                    self.json({"ok": False}, 404)
             elif route == "/api/calendar":
                 st.calendar.load()
                 if st.calendar.data:
@@ -225,6 +263,8 @@ def make_handler(st: Station):
                 body = {}
             if self.path == "/api/dispatch":
                 self.json(st.dispatch(str(body.get("place_id", ""))))
+            elif self.path == "/api/decide":
+                self.json(st.decide(str(body.get("label", ""))))
             elif self.path == "/api/alarm/ack":
                 self.json(st.ack_alarm())
             elif self.path == "/api/refresh":
@@ -242,12 +282,15 @@ def make_handler(st: Station):
 def main():
     ap = argparse.ArgumentParser(description="Zakarpattia Orbit — наземна станція")
     ap.add_argument("--sample", action="store_true")
-    ap.add_argument("--module", action="store_true")
+    ap.add_argument("--auto-operator", action="store_true", help="демо без людини: рішення з підказки")
     ap.add_argument("--scenario", choices=["fire", "field", "false"], default="fire")
     ap.add_argument("--no-auto", action="store_true")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--speedup", type=float, default=None, help="у скільки разів прискорити політ (типово з config)")
     a = ap.parse_args()
+    if a.speedup:
+        config.SIM_SPEEDUP = a.speedup
 
     st = Station(a)
     st.refresh()

@@ -2,7 +2,8 @@
 
 # Ключ NASA FIRMS (MAP_KEY) — з листа "NASA FIRMS: Map key".
 # Краще задати змінною середовища FIRMS_MAP_KEY, ніж писати тут.
-FIRMS_MAP_KEY = ""  # встав свій ключ NASA FIRMS (не викладай його в інтернет)
+import os
+FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
 
 # Супутники: VIIRS_SNPP_NRT, VIIRS_NOAA20_NRT, VIIRS_NOAA21_NRT, MODIS_NRT
 FIRMS_SOURCES = ["VIIRS_NOAA21_NRT", "VIIRS_NOAA20_NRT", "VIIRS_SNPP_NRT", "MODIS_NRT"]
@@ -39,11 +40,19 @@ BASE_LON = BASES[0]["lon"]
 DRONE_SPEED_MS = 15.0     # крейсерська швидкість
 CLIMB_MS = 4.0            # набір / зниження висоти
 ENDURANCE_MIN = 45.0      # скільки хвилин тримає батарея
-INSPECT_S = 30            # огляд над точкою
+INSPECT_S = 30            # мінімальне коло над точкою
+OPERATOR_TIMEOUT_S = 120  # скільки дрон кружляє, чекаючи рішення оператора (реальні секунди)
 SIM_SPEEDUP = 10          # у симуляції час іде в 10 разів швидше
 
-# Модуль ESP32-CAM у локальній мережі (IP пише Serial Monitor)
+# Модуль ESP32-CAM (старий режим main.py; у v3 на дроні не потрібен)
 MODULE_URL = "http://192.168.4.2"
+
+# Сповіщення оператору в Telegram (необов'язково). Порожньо = лише в консоль.
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+
+# Відомі промислові джерела (data/static_sources.json): точки ближче цього не перевіряємо
+STATIC_BUFFER_KM = 1.0
 
 # Висоти
 FLIGHT_ALT_M = 100       # висота польоту до точки

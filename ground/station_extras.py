@@ -12,6 +12,56 @@ from firms import haversine_km
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CALENDAR_PATH = os.path.join(ROOT, "data", "calendar.json")
+STATIC_PATH = os.path.join(ROOT, "data", "static_sources.json")
+
+
+RISK_PATH = os.path.join(ROOT, "data", "risk.json")
+
+
+class RiskMap:
+    """Прогноз ризику горіння (Random Forest, harmonize/risk_model.py) для поточного місяця."""
+
+    def __init__(self):
+        self.months = {}
+        try:
+            with open(RISK_PATH, encoding="utf-8") as f:
+                for m in json.load(f)["months"]:
+                    self.months[m["month"]] = {(math.floor(c["lat"] / 0.02), math.floor(c["lon"] / 0.02)): c for c in m["cells"]}
+            print(f"[РИЗИК] прогноз завантажено: {sum(len(v) for v in self.months.values())} клітинок")
+        except (OSError, KeyError):
+            print("[РИЗИК] data/risk.json немає — без прогнозу")
+
+    def at(self, lat: float, lon: float, month: Optional[int] = None) -> Optional[dict]:
+        cells = self.months.get(month or datetime.now().month) or {}
+        ky, kx = math.floor(lat / 0.02), math.floor(lon / 0.02)
+        best = None
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                c = cells.get((ky + dy, kx + dx))
+                if c and (best is None or c["risk"] > best["risk"]):
+                    best = c
+        return {"risk": best["risk"], "unc": best["unc"]} if best else None
+
+
+class StaticSources:
+    """Відомі промислові джерела тепла з архіву NASA (type = 2). Будує harmonize/build_static_mask.py."""
+
+    def __init__(self):
+        self.sites = []
+        try:
+            with open(STATIC_PATH, encoding="utf-8") as f:
+                self.sites = json.load(f).get("sites", [])
+            print(f"[МАСКА] відомих промислових джерел: {len(self.sites)}")
+        except OSError:
+            print("[МАСКА] data/static_sources.json немає — маска вимкнена")
+
+    def near(self, lat: float, lon: float) -> Optional[dict]:
+        best = None
+        for s in self.sites:
+            d = haversine_km(lat, lon, s["lat"], s["lon"])
+            if d <= config.STATIC_BUFFER_KM and (best is None or d < best["dist_km"]):
+                best = {**s, "dist_km": round(d, 2)}
+        return best
 
 MONTHS_UA = ["січень", "лютий", "березень", "квітень", "травень", "червень",
              "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"]
