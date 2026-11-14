@@ -83,6 +83,37 @@ h2.sec small{display:block;margin-top:3px;font:400 13px Manrope,sans-serif;color
 .sense path{fill:none;stroke:var(--lichen-dim);stroke-width:1.5;stroke-linejoin:round}
 .sense path.ember{stroke:var(--ember)}
 .note{margin:10px 0 0;font-size:13px;color:var(--amber)}
+/* drone camera (v3: operator decides) */
+.cam-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.cam-head h2{margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;padding:4px 11px;font-size:12.5px;color:var(--lichen-dim)}
+.seg button[aria-pressed="true"]{background:var(--lichen);color:var(--spruce);font-weight:700}
+.seg button:focus-visible{outline:2px solid var(--lichen);outline-offset:-2px}
+.cam{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#0b1a16;border:1px solid var(--line)}
+.cam #camMap{position:absolute;inset:0;background:#0b1a16}
+.cam.thermal #camMap{filter:grayscale(1) contrast(1.5) brightness(.55)}
+.cam .hot{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(circle,#fff 0 8%,#ffe066 18%,#ff8c2a 34%,rgba(228,87,46,.55) 52%,rgba(228,87,46,0) 70%);mix-blend-mode:screen}
+.cam:not(.thermal) .hot{background:radial-gradient(circle,rgba(255,170,90,.55) 0 10%,rgba(160,160,160,.35) 30%,rgba(200,200,200,0) 70%);mix-blend-mode:normal}
+.cam .hud{position:absolute;left:10px;right:10px;top:8px;display:flex;justify-content:space-between;font:500 11.5px/1.3 Manrope,sans-serif;color:#fff;text-shadow:0 1px 2px #000}
+.cam .rec{display:inline-flex;align-items:center;gap:6px}
+.cam .rec i{width:8px;height:8px;border-radius:50%;background:#E4572E}
+.cam .cross{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:1.5px solid rgba(255,255,255,.7);border-radius:50%;pointer-events:none}
+.cam .off[hidden]{display:none}
+.cam .off{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:13px;color:var(--lichen-dim);background:rgba(11,26,22,.82)}
+.hint{margin:10px 0 0;font-size:13.5px;color:var(--lichen-dim)}
+.hint b{font-weight:700}
+.decide{margin-top:12px;padding:14px;border-radius:10px;border:1px solid var(--accent);background:rgba(216,222,200,.05)}
+.decide h3{margin:0 0 4px;font:700 17px/1.25 Unbounded,sans-serif}
+.decide p{margin:0 0 10px;font-size:13px;color:var(--lichen-dim)}
+.decide .row{display:flex;flex-wrap:wrap;gap:8px}
+.btn.v-fire{background:#E4572E;border-color:#E4572E;color:#fff;font-weight:700}
+.btn.v-field{background:#E9A23B;border-color:#E9A23B;color:var(--spruce);font-weight:700}
+.btn.v-false{border-color:#7FB069;color:#A9D08E}
+.badge.ind{border-color:rgba(159,170,148,.6);color:var(--lichen)}
+.spot.ind{background:#9FAA94;opacity:.75}
+.legend i.i{background:#9FAA94}
 
 /* verdict */
 .verdict{border-radius:10px;padding:18px 18px 16px;background:rgba(216,222,200,.06);border:1px solid var(--line)}
@@ -162,6 +193,14 @@ h2.sec small{display:block;margin-top:3px;font:400 13px Manrope,sans-serif;color
 .check b{display:block;font:500 19px/1.3 Unbounded,sans-serif;font-variant-numeric:tabular-nums}
 .check p{grid-column:1/3;margin:0;background:var(--spruce);padding:11px 13px;font-size:13px;color:var(--lichen-dim)}
 .insights{margin:0;padding-left:18px;font-size:14px}
+.months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px}
+.months button{all:unset;cursor:pointer;text-align:center;font-size:11.5px;padding:4px 0;border-radius:5px;color:var(--lichen-dim);background:rgba(216,222,200,.06)}
+.months button[aria-pressed="true"]{background:var(--amber);color:var(--spruce);font-weight:700}
+.months button:focus-visible{outline:2px solid var(--lichen)}
+.legend i.rk{background:linear-gradient(90deg,#F2D06B,#E4572E)}
+.legend i.un{background:linear-gradient(90deg,#9DB7E8,#5A3FA0)}
+.newbase{width:16px;height:16px;border:2px dashed #fff;border-radius:3px;transform:rotate(45deg);background:rgba(127,176,105,.35)}
+.legend i.nb{border-radius:2px;border:1.5px dashed #fff;background:rgba(127,176,105,.4);transform:rotate(45deg)}
 .insights li{margin-bottom:7px}
 .insights li::marker{color:var(--amber)}
 .cal-empty{border:1px dashed rgba(216,222,200,.3);border-radius:10px;padding:16px;color:var(--lichen-dim);font-size:14px}
@@ -212,6 +251,7 @@ h2.sec small{display:block;margin-top:3px;font:400 13px Manrope,sans-serif;color
 .legend i.b{border-radius:3px;background:var(--lichen);transform:rotate(45deg)}
 .legend i.d{width:0;height:0;border-radius:0;background:none;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid #fff}
 .legend i.r{width:18px;height:0;border-radius:0;background:none;border-top:4px solid var(--ember)}
+.legend i.ind{background:#9FAA94}
 .legend i.h{background:rgba(233,162,59,.55);border:1.5px solid var(--amber)}
 .follow{position:fixed;right:20px;top:96px;z-index:600}
 .follow .btn{background:rgba(14,38,32,.92);border-color:rgba(216,222,200,.5)}
@@ -304,11 +344,29 @@ h2.sec small{display:block;margin-top:3px;font:400 13px Manrope,sans-serif;color
     </div>
 
     <section class="sensors" id="sensors" hidden>
-      <h2 class="sec"><span data-i18n="sensors"></span><small id="sensMode"></small></h2>
+      <div class="cam-head">
+        <h2 class="sec"><span data-i18n="camTitle"></span></h2>
+        <div class="seg" role="group" aria-label="camera">
+          <button type="button" id="camDay" aria-pressed="false" data-i18n="camDay"></button><button type="button" id="camTh" aria-pressed="true" data-i18n="camThermal"></button>
+        </div>
+      </div>
+      <div class="cam thermal" id="cam">
+        <div id="camMap"></div><div class="hot" id="camHot"></div><div class="cross"></div>
+        <div class="hud"><span class="rec"><i></i><span id="camMode"></span></span><span id="camInfo"></span></div>
+        <div class="off" id="camOff" hidden></div>
+      </div>
       <div class="sense"><div><span data-i18n="sThermal"></span><b id="sTh">—</b></div><svg viewBox="0 0 96 30" aria-hidden="true"><path id="pTh"/></svg></div>
-      <div class="sense"><div><span data-i18n="sAir"></span><b id="sAir">—</b></div><svg viewBox="0 0 96 30" aria-hidden="true"><path id="pAir"/></svg></div>
-      <div class="sense"><div><span data-i18n="sCo"></span><b id="sCo">—</b></div><svg viewBox="0 0 96 30" aria-hidden="true"><path id="pCo"/></svg></div>
-      <p class="note" id="simNote" hidden data-i18n="simNote"></p>
+      <p class="hint" id="hint" hidden></p>
+      <div class="decide" id="decide" hidden>
+        <h3 data-i18n="decideTitle"></h3>
+        <p id="decideLeft"></p>
+        <div class="row">
+          <button class="btn v-fire" type="button" data-label="fire" data-i18n="dFire"></button>
+          <button class="btn v-field" type="button" data-label="field" data-i18n="dField"></button>
+          <button class="btn v-false" type="button" data-label="false" data-i18n="dFalse"></button>
+        </div>
+      </div>
+      <p class="note" id="simNote" data-i18n="simNote"></p>
     </section>
 
     <section class="places">
@@ -359,6 +417,19 @@ h2.sec small{display:block;margin-top:3px;font:400 13px Manrope,sans-serif;color
         <h2 class="sec"><span data-i18n="checkTitle"></span><small id="checkSub"></small></h2>
         <div class="check" id="check"></div>
       </section>
+      <section id="riskBox" hidden>
+        <h2 class="sec"><span data-i18n="riskTitle"></span><small id="riskSub"></small></h2>
+        <div class="seg" role="group" id="layerSeg" style="margin-bottom:10px">
+          <button type="button" data-v="hist" aria-pressed="true" data-i18n="lyHist"></button><button type="button" data-v="risk" aria-pressed="false" data-i18n="lyRisk"></button><button type="button" data-v="unc" aria-pressed="false" data-i18n="lyUnc"></button>
+        </div>
+        <div class="months" id="riskMonths" role="group"></div>
+        <div class="check" id="riskCheck" style="margin-top:10px"></div>
+      </section>
+      <section id="planBox" hidden>
+        <h2 class="sec"><span data-i18n="planTitle"></span><small data-i18n="planSub"></small></h2>
+        <div class="check" id="plan"></div>
+        <ul class="insights" id="planList" style="margin-top:10px"></ul>
+      </section>
       <section>
         <h2 class="sec" data-i18n="insightsTitle"></h2>
         <ul class="insights" id="insights"></ul>
@@ -381,20 +452,40 @@ const I18N = {
     docTitle:'Zakarpattia Orbit — наземна станція', mapLabel:'Карта Закарпаття: бази дронів, гарячі точки NASA і політ дрона',
     offline:'Немає зв\'язку з наземною станцією. Перевір, чи запущено python server.py',
     follow:'Стежити за дроном', tabStation:'Станція', tabCalendar:'Календар горіння',
-    connecting:'Підключаюсь…', confidence:'Впевненість', alt:'Висота', speed:'Швидкість', battery:'Батарея',
+    connecting:'Підключаюсь…', confidence:'Рішення', alt:'Висота', speed:'Швидкість', battery:'Батарея',
     missionTime:'Час місії', toEnd:'До кінця', toTarget:'До цілі', toBase:'До бази',
-    sensors:'Датчики модуля', sThermal:'Тепловізор, найгарячіша точка', sAir:'Повітря', sCo:'Чадний газ',
-    simNote:'Показання модуля імітовані: заліза ще немає.', placesTitle:'Гарячі точки NASA', refresh:'Оновити дані NASA',
-    logTitle:'Журнал місій', nasaLive:u=>`NASA: живі дані, ${u}`, nasaSaved:'NASA: збережена точка',
+    camTitle:'Відео з дрона', camDay:'Денна', camThermal:'Теплова', camModeDay:'ДЕННА КАМЕРА', camModeTh:'ТЕПЛОВІЗОР',
+    camOff:'Відео з\'явиться, коли дрон підлетить до точки.', camOffDone:'Дрон на базі. Відео вимкнено.',
+    sThermal:'Тепловізор дрона, найгарячіша точка',
+    hintText:(v,c)=>`Підказка системи: <b style="color:${v.color}">${esc(v.title)}</b> (тепловізор ${c} °C). Рішення за оператором.`,
+    decideTitle:'Оператор, що на відео?', decideLeft:s=>`Дрон кружляє над точкою. Без рішення повернеться через ${s}.`,
+    dFire:'Лісова пожежа', dField:'Палять поле', dFalse:'Хибна тривога', decided:'Рішення надіслано. Дрон повертається на базу.',
+    simNote:'Демо: політ і відео симульовані (супутниковий знімок місця + модель тепловізора). Справжній дрон — ArduPilot по MAVLink, відео по штатному відеоканалу.',
+    byOperator:'рішення оператора', byAuto:'демо: авто-рішення', byTimeout:'оператор не відповів', byWho:{operator:'оператор', auto:'авто', timeout:'без рішення'},
+    opNeeded:'Потрібне рішення оператора', opAuto:'Демо: авто-оператор', staticN:n=>`Маска заводів: ${n}`,
+    industrial:'відоме промислове джерело (NASA)', industrialBtn:'Не потрібно: завод/труба', lgInd:'Промислове джерело',
+    riskTitle:'Прогноз ризику на 2027', riskSub:'Random Forest на історії 2012–2025; непевність — розкид 200 дерев',
+    lyHist:'Історія', lyRisk:'Ризик', lyUnc:'Непевність', lgRisk:'Ризик горіння (ймовірність)', lgUnc:'Непевність моделі',
+    rAuc:'Перевірка 2023–2025, ROC AUC', rCap:'Пожеж у 5% найризиковіших клітинок', rBase:b=>`проста історія: ${b}`,
+    rText:m=>`Навчання на ${m.train_years[0]}–${m.train_years[1]}, перевірка наперед на ${m.test_years[0]}–${m.test_years[1]}. Ризик і непевність разом задають пріоритет: високий ризик — патрулювати, висока непевність — перевірити дроном.`,
+    riskTip:(r,u)=>`ризик ${r}% · непевність ±${u}%`, riskBadge:(r,u)=>`прогноз ризику ${r}% ±${u}`,
+    planTitle:'Де ставити бази', planSub:'покриття точок VIIRS 2012–2026 радіусом 15 км', lgNewBase:'Кандидат у нову базу',
+    pCov:'Точок у радіусі 13 баз', pRep:'Місць повторного горіння в радіусі', pSpring:'Точок у березні–квітні', pNew:'Покриття з 3 новими базами',
+    pBase:(n,c,sp)=>`${n}: ${c} точок у радіусі, ${sp}% з них у березні–квітні`,
+    pCand:(a,o,k,sh)=>`Кандидат ${a}, ${o}: +${k} точок (+${sh}%). Перевірити на місцевості.`,
+    pNote:'Область наближено: точки ближче 35 км до міст з базами (прямокутник даних захоплює сусідні країни).',
+    vCorrM:'Кореляція по місяцях, Пірсон', vCorrY:'Кореляція по роках', vCorrS:'Кореляція по клітинках 10 км',
+    vCorrText:c=>`MODIS і VIIRS S-NPP, ${c.years[0]}–${c.years[1]}. Найслабше в січні і червні, коли точок мало: кілька штук на місяць дають шум.`, placesTitle:'Гарячі точки NASA', refresh:'Оновити дані NASA',
+    logTitle:'Журнал місій', nasaLive:u=>`NASA: живі дані, ${u}`, nasaSaved:'NASA: збережена точка', nasaDemo:d=>`Демо: справжній день NASA ${d}`,
     modLive:'Модуль на зв\'язку', modSim:'Модуль: імітація', speedup:x=>`Час прискорено ×${x}`,
     droneFrom:b=>`Дрон з бази ${b}`, flyingTo:(s,t)=>`Летить перевірити точку ${s} від ${t}.`,
     done:'Місію завершено', doneLead:b=>`Дрон повернувся на базу ${b}.`, waiting:'Чекаю команди', quiet:'Поруч тихо',
     reachable:n=>`${n} ${plural(n,'точка','точки','точок')} у радіусі баз. Обери точку і відправ дрон.`,
     allOut:'Усі гарячі точки NASA поза радіусом баз.', noFires:'NASA не бачить гарячих точок над Закарпаттям.',
     stage:(i,n)=>`Етап ${i} з ${n}`, mOnline:'на зв\'язку', scenario:s=>`сценарій ${({fire:'пожежа',field:'поле',false:'хибна'})[s]||s}`,
-    yes:'є', no:'немає', placesSub:n=>`${n} за 5 дн.`, empty:'Порожньо: NASA не бачить пожеж. Це добрий знак.',
+    yes:'є', no:'немає', placesSub:n=>`${n} за 5 дн.`, placesSubDemo:n=>`${n} за цей день`, empty:'Порожньо: NASA не бачить пожеж. Це добрий знак.',
     passes:n=>n>1?`${n} проходи`:'1 прохід', base:(b,d)=>`база ${b}, ${d} км`, outRange:'поза радіусом баз',
-    st:{new:'Нова', flying:'Дрон летить', checked:'Перевірено', out_of_range:'Поза радіусом баз'},
+    st:{new:'Нова', flying:'Дрон летить', checked:'Перевірено', out_of_range:'Поза радіусом баз', industrial:'Промислове джерело'},
     noBase:'Немає бази поруч', alreadyFlying:'Дрон уже летить', recheck:'Перевірити ще раз', send:'Відправити дрон',
     noBattery:'Не вистачить батареї', batLeft:p=>`залишок ≈ ${p}%`, showOnMap:'Показати на карті',
     hist:{often:'горить майже щороку', sometimes:'іноді горить', first:'вперше'},
@@ -440,20 +531,40 @@ const I18N = {
     docTitle:'Zakarpattia Orbit — ground station', mapLabel:'Map of Zakarpattia: drone bases, NASA hotspots and the drone in flight',
     offline:'No connection to the ground station. Check that python server.py is running.',
     follow:'Follow the drone', tabStation:'Station', tabCalendar:'Burning calendar',
-    connecting:'Connecting…', confidence:'Confidence', alt:'Altitude', speed:'Speed', battery:'Battery',
+    connecting:'Connecting…', confidence:'Decision', alt:'Altitude', speed:'Speed', battery:'Battery',
     missionTime:'Mission time', toEnd:'Remaining', toTarget:'To target', toBase:'To base',
-    sensors:'Module sensors', sThermal:'Thermal camera, hottest spot', sAir:'Air', sCo:'Carbon monoxide',
-    simNote:'Module readings are simulated: the hardware is not built yet.', placesTitle:'NASA hotspots', refresh:'Refresh NASA data',
-    logTitle:'Mission log', nasaLive:u=>`NASA: live data, ${u}`, nasaSaved:'NASA: saved sample',
+    camTitle:'Drone video', camDay:'Day', camThermal:'Thermal', camModeDay:'DAY CAMERA', camModeTh:'THERMAL',
+    camOff:'Video starts when the drone reaches the hotspot.', camOffDone:'The drone is at base. Video off.',
+    sThermal:'Drone thermal camera, hottest spot',
+    hintText:(v,c)=>`System hint: <b style="color:${v.color}">${esc(v.title_en)}</b> (thermal ${c} °C). The operator decides.`,
+    decideTitle:'Operator, what is on the video?', decideLeft:s=>`The drone circles the hotspot. Without a decision it returns in ${s}.`,
+    dFire:'Forest fire', dField:'Field burning', dFalse:'False alarm', decided:'Decision sent. The drone is returning to base.',
+    simNote:'Demo: the flight and video are simulated (satellite image of the place + a thermal model). A real drone runs ArduPilot over MAVLink; video comes over its own video link.',
+    byOperator:'operator decision', byAuto:'demo: automatic decision', byTimeout:'operator did not answer', byWho:{operator:'operator', auto:'auto', timeout:'no decision'},
+    opNeeded:'Operator decision needed', opAuto:'Demo: auto-operator', staticN:n=>`Factory mask: ${n}`,
+    industrial:'known industrial heat source (NASA)', industrialBtn:'Not needed: factory/stack', lgInd:'Industrial source',
+    riskTitle:'Risk forecast for 2027', riskSub:'Random Forest on 2012–2025 history; uncertainty = spread of 200 trees',
+    lyHist:'History', lyRisk:'Risk', lyUnc:'Uncertainty', lgRisk:'Burning risk (probability)', lgUnc:'Model uncertainty',
+    rAuc:'Test 2023–2025, ROC AUC', rCap:'Fires in the riskiest 5% of cells', rBase:b=>`history only: ${b}`,
+    rText:m=>`Trained on ${m.train_years[0]}–${m.train_years[1]}, tested ahead in time on ${m.test_years[0]}–${m.test_years[1]}. Risk and uncertainty together set priority: high risk — patrol, high uncertainty — send a drone to check.`,
+    riskTip:(r,u)=>`risk ${r}% · uncertainty ±${u}%`, riskBadge:(r,u)=>`risk forecast ${r}% ±${u}`,
+    planTitle:'Where to put bases', planSub:'coverage of VIIRS hotspots 2012–2026 with a 15 km radius', lgNewBase:'Candidate new base',
+    pCov:'Hotspots within 13 bases', pRep:'Repeat-burning sites within range', pSpring:'Hotspots in March–April', pNew:'Coverage with 3 new bases',
+    pBase:(n,c,sp)=>`${n}: ${c} hotspots in range, ${sp}% of them in March–April`,
+    pCand:(a,o,k,sh)=>`Candidate ${a}, ${o}: +${k} hotspots (+${sh}%). Check on the ground.`,
+    pNote:'Oblast approximated as hotspots within 35 km of a base town (the data box also covers neighbouring countries).',
+    vCorrM:'Correlation by month, Pearson', vCorrY:'Correlation by year', vCorrS:'Correlation by 10 km cell',
+    vCorrText:c=>`MODIS and VIIRS S-NPP, ${c.years[0]}–${c.years[1]}. Weakest in January and June, when there are only a few hotspots a month and noise dominates.`, placesTitle:'NASA hotspots', refresh:'Refresh NASA data',
+    logTitle:'Mission log', nasaLive:u=>`NASA: live data, ${u}`, nasaSaved:'NASA: saved sample', nasaDemo:d=>`Demo: a real NASA day, ${d}`,
     modLive:'Module online', modSim:'Module: simulated', speedup:x=>`Time sped up ×${x}`,
     droneFrom:b=>`Drone from ${b} base`, flyingTo:(s,t)=>`Flying to check the ${s} hotspot from ${t}.`,
     done:'Mission complete', doneLead:b=>`The drone is back at ${b} base.`, waiting:'Ready for a task', quiet:'All quiet nearby',
     reachable:n=>`${n} ${n===1?'hotspot':'hotspots'} within base range. Pick one and send the drone.`,
     allOut:'All NASA hotspots are out of base range.', noFires:'NASA sees no hotspots over Zakarpattia.',
     stage:(i,n)=>`Stage ${i} of ${n}`, mOnline:'online', scenario:s=>`scenario: ${({fire:'fire',field:'field burn',false:'false alarm'})[s]||s}`,
-    yes:'yes', no:'none', placesSub:n=>`${n} in the last 5 days`, empty:'Empty: NASA sees no fires. That is good news.',
+    yes:'yes', no:'none', placesSub:n=>`${n} in the last 5 days`, placesSubDemo:n=>`${n} on this day`, empty:'Empty: NASA sees no fires. That is good news.',
     passes:n=>n>1?`${n} passes`:'1 pass', base:(b,d)=>`${b} base, ${d} km`, outRange:'out of base range',
-    st:{new:'New', flying:'Drone en route', checked:'Checked', out_of_range:'Out of base range'},
+    st:{new:'New', flying:'Drone en route', checked:'Checked', out_of_range:'Out of base range', industrial:'Industrial source'},
     noBase:'No base nearby', alreadyFlying:'Drone en route', recheck:'Check again', send:'Send the drone',
     noBattery:'Not enough battery', batLeft:p=>`≈ ${p}% left`, showOnMap:'Show on the map',
     hist:{often:'burns almost every year', sometimes:'burns sometimes', first:'first time'},
@@ -589,8 +700,10 @@ function fitAll() { if (S) fitPts([...S.bases.map(b => [b.lat, b.lon]), ...S.pla
 /* ================= legend ================= */
 function renderLegend() {
   const items = MODE === 'calendar'
-    ? [['h', t('lgCells')], ['b', t('lgBase')]]
+    ? (LAYER === 'risk' ? [['rk', t('lgRisk')]] : LAYER === 'unc' ? [['un', t('lgUnc')]] : [['h', t('lgCells')]])
+        .concat([['b', t('lgBase')]]).concat(CAL && CAL.planning ? [['nb', t('lgNewBase')]] : [])
     : [['c', t('lgConfirmed')], ['', t('lgOne')], ['b', t('lgBase')], ['d', t('lgDrone')]]
+        .concat(S && S.places && S.places.some(p => p.status === 'industrial') ? [['ind', t('lgInd')]] : [])
         .concat(S && S.alarm && S.alarm.route ? [['r', t('lgRoute')]] : []);
   const html = items.map(([c, l]) => `<span><i class="${c}"></i>${esc(l)}</span>`).join('');
   if ($('legend').innerHTML !== html) $('legend').innerHTML = html;
@@ -619,11 +732,11 @@ function renderMap() {
     seen.add(p.id);
     const active = S.mission && S.mission.place_id === p.id && S.mission.phase !== 'done';
     const color = p.verdict ? p.verdict.color : null;
-    const cls = 'spot' + (p.confirmed ? ' c' : '') + (p.status === 'out_of_range' ? ' out' : '') + (active ? ' target' : '');
+    const cls = 'spot' + (p.confirmed ? ' c' : '') + (p.status === 'out_of_range' ? ' out' : '') + (p.status === 'industrial' ? ' ind' : '') + (active ? ' target' : '');
     const html = `<div class="${cls}"${color ? ` style="background:${color}"` : ''}></div>`;
     const h = p.history;
     const tip = `${esc(p.sensors.join(', '))}<br>${esc(p.latest)}, ${fmt(p.frp_max,1)} ${t('mw')}`
-      + (h ? `<br>${esc(t('hist')[h.recurrence] || '')}` : '') + (p.verdict ? `<br><b>${esc(vt(p.verdict))}</b>` : '');
+      + (h ? `<br>${esc(t('hist')[h.recurrence] || '')}` : '') + (p.static_source ? `<br>${esc(t('industrial'))}` : '') + (p.verdict ? `<br><b>${esc(vt(p.verdict))}</b>` : '');
     if (!layers.places[p.id]) {
       layers.places[p.id] = L.marker([p.lat, p.lon], {icon:divIcon(html, 22), title:t('hotspot'), zIndexOffset:500})
         .addTo(map).bindTooltip(tip, {className:'tag', direction:'top', offset:[0,-10]});
@@ -707,11 +820,13 @@ requestAnimationFrame(tick);
 function renderChips() {
   const m = S.mission;
   const src = S.source === 'live' ? `<span class="chip"><i class="on"></i>${esc(t('nasaLive', S.updated_at || ''))}</span>`
+    : S.source === 'demo' ? `<span class="chip"><i class="sim"></i>${esc(t('nasaDemo', S.updated_at || ''))}</span>`
     : `<span class="chip"><i class="sim"></i>${esc(t('nasaSaved'))}</span>`;
-  const mod = m && m.module_mode === 'live' ? `<span class="chip"><i class="on"></i>${esc(t('modLive'))}</span>`
-    : `<span class="chip"><i class="sim"></i>${esc(t('modSim'))}</span>`;
+  const mod = m && m.waiting_operator ? (m.auto_operator ? `<span class="chip"><i class="sim"></i>${esc(t('opAuto'))}</span>`
+    : `<span class="chip"><i class="sim"></i>${esc(t('opNeeded'))}</span>`) : '';
+  const stc = S.static_sources ? `<span class="chip">${esc(t('staticN', S.static_sources))}</span>` : '';
   const sp = S.speedup && S.speedup !== 1 ? `<span class="chip">${esc(t('speedup', S.speedup))}</span>` : '';
-  const html = src + mod + sp;
+  const html = src + mod + stc + sp;
   if ($('chips').innerHTML !== html) $('chips').innerHTML = html;
 }
 function renderSeason() {
@@ -751,7 +866,7 @@ function renderHead() {
     $('phaseName').textContent = LANG === 'en' ? (m.phases[idx].label_en || PHASE_EN[m.phase] || m.phase_label) : m.phase_label;
   }
 }
-const PHASE_EN = {takeoff:'Take-off', cruise:'Flying to the hotspot', descend:'Descent', inspect:'Inspection', return:'Return', land:'Landing', done:'At base'};
+const PHASE_EN = {takeoff:'Auto take-off', cruise:'Flying to the hotspot', descend:'Descent', inspect:'Operator review', return:'Return', land:'Auto landing', done:'At base'};
 
 function renderTele() {
   const m = S.mission;
@@ -767,19 +882,66 @@ function renderTele() {
   $('tBat').classList.toggle('low', m.battery_pct < 30);
   $('tTime').textContent = mmss(m.t_sim_s);
   $('tEta').textContent = m.phase === 'done' ? '0:00' : '≈ ' + mmss(m.eta_s);
-  const s = m.sensors || {}, h = m.history || {};
-  const thHot = s.thermal_max_c >= 100, riseHot = s.temp_rise_c >= 8, coHot = !!s.co_detected;
-  $('sTh').textContent = `${fmt(s.thermal_max_c)} °C`; $('sTh').className = thHot ? 'ember' : '';
-  $('sAir').textContent = `${fmt(s.air_temp_c, 1)} °C` + (s.temp_rise_c ? `, +${fmt(s.temp_rise_c, 1)}` : ''); $('sAir').className = riseHot ? 'ember' : '';
-  $('sCo').textContent = s.co_ppm != null ? `${fmt(s.co_ppm)} ppm` : (coHot ? t('yes') : t('no')); $('sCo').className = coHot ? 'ember' : '';
-  spark($('pTh'), h.thermal, thHot); spark($('pAir'), h.air, riseHot); spark($('pCo'), h.co, coHot);
-  $('sensMode').textContent = m.module_mode === 'live' ? t('mOnline') : t('scenario', m.scenario);
-  $('simNote').hidden = m.module_mode !== 'sim';
+  renderCam(m);
 }
+
+/* ---- drone camera: satellite image of the place + thermal model (simulation of the drone's video link) ---- */
+let cam = null, camThermal = true;
+function renderCam(m) {
+  const h = m.history || {};
+  const th = m.thermal_c, hot = th >= 100;
+  $('sTh').textContent = `${fmt(th)} °C`; $('sTh').className = hot ? 'ember' : '';
+  spark($('pTh'), h.thermal, hot);
+  const near = ['descend','inspect'].includes(m.phase) || (m.phase === 'return' && m.dist_to_target_m < 400);
+  $('camOff').hidden = near;
+  $('camOff').textContent = m.phase === 'done' ? t('camOffDone') : t('camOff');
+  $('cam').classList.toggle('thermal', camThermal);
+  $('camDay').setAttribute('aria-pressed', !camThermal); $('camTh').setAttribute('aria-pressed', camThermal);
+  $('camMode').textContent = camThermal ? t('camModeTh') : t('camModeDay');
+  $('camInfo').textContent = `${fmt(m.alt_m)} ${t('m')} · max ${fmt(th)} °C`;
+  if (!cam && window.L) {
+    cam = L.map('camMap', {zoomControl:false, attributionControl:false, dragging:false, scrollWheelZoom:false,
+      doubleClickZoom:false, boxZoom:false, keyboard:false, touchZoom:false});
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom:18}).addTo(cam);
+  }
+  if (cam) {
+    const el = $('camMap');
+    if (cam._w !== el.clientWidth || cam._h !== el.clientHeight) { cam._w = el.clientWidth; cam._h = el.clientHeight; cam.invalidateSize(false); }
+    const z = m.alt_m > 70 ? 16 : 17;
+    const c = near ? L.latLng(m.lat, m.lon) : L.latLng(m.target ? m.target[0] : m.lat, m.target ? m.target[1] : m.lon);
+    if (cam.getZoom() !== z || cam.getCenter().distanceTo(c) > 5) cam.setView(c, z, {animate:false});
+    const tgt = m.target ? cam.latLngToContainerPoint(m.target) : null, hotEl = $('camHot');
+    if (tgt && near) {
+      const k = Math.max(0, Math.min(1, (th - 30) / 220));
+      hotEl.style.left = tgt.x + 'px'; hotEl.style.top = tgt.y + 'px';
+      hotEl.style.opacity = (camThermal ? .15 + .85 * k : .9 * k).toFixed(2);
+      const sz = 50 + 110 * k; hotEl.style.width = hotEl.style.height = sz + 'px'; hotEl.style.margin = `-${sz / 2}px 0 0 -${sz / 2}px`;
+    } else hotEl.style.opacity = 0;
+  }
+  const hint = m.hint;
+  $('hint').hidden = !hint || !!m.verdict;
+  if (hint) $('hint').innerHTML = t('hintText', hint, fmt(m.thermal_peak_c));
+  const wait = m.waiting_operator && !m.auto_operator;
+  $('decide').hidden = !wait;
+  if (wait) $('decideLeft').textContent = t('decideLeft', mmss(m.operator_left_s || 0));
+}
+$('camDay').onclick = () => { camThermal = false; S && S.mission && renderCam(S.mission); };
+$('camTh').onclick = () => { camThermal = true; S && S.mission && renderCam(S.mission); };
+$('decide').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-label]'); if (!b || !S || !S.mission) return;
+  [...$('decide').querySelectorAll('button')].forEach(x => x.disabled = true);
+  unlockAudio();
+  try {
+    const j = await (await fetch('/api/decide', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({label:b.dataset.label})})).json();
+    say(j.ok ? t('decided') : (j.error || t('noAnswer')), !j.ok);
+  } catch { say(t('noAnswer'), true); }
+  [...$('decide').querySelectorAll('button')].forEach(x => x.disabled = false);
+  poll();
+});
 
 function renderVerdict() {
   const v = S.mission && S.mission.verdict;
-  const key = v ? `${S.mission.place_id}|${v.label}|${v.confidence}|${LANG}` : '';
+  const key = v ? `${S.mission.place_id}|${v.label}|${v.by}|${LANG}` : '';
   if (key === lastVerdictKey) return;
   const fresh = !!v && lastVerdictKey === '';
   lastVerdictKey = key;
@@ -787,8 +949,8 @@ function renderVerdict() {
   if (!v) return;
   $('vTitle').textContent = vt(v); $('vTitle').style.color = v.color;
   $('vSummary').textContent = tx(v, 'summary');
-  $('vBar').style.width = `${Math.round(v.confidence * 100)}%`; $('vBar').style.background = v.color;
-  $('vConf').textContent = `${Math.round(v.confidence * 100)}%`;
+  $('vBar').style.width = v.by === 'operator' ? '100%' : '0%'; $('vBar').style.background = v.color;
+  $('vConf').textContent = v.by === 'operator' ? t('byOperator') : v.by === 'auto' ? t('byAuto') : t('byTimeout');
   const reasons = (LANG === 'en' && v.reasons_en) || v.reasons || [];
   $('vReasons').innerHTML = reasons.map(r => `<li>${esc(r)}</li>`).join('');
   const box = $('verdict');
@@ -799,8 +961,8 @@ function renderVerdict() {
 function renderPlaces() {
   const busy = S.mission && S.mission.phase !== 'done';
   const key = JSON.stringify([LANG, S.places.map(p => [p.id, p.status, p.verdict && p.verdict.label, p.base_id, p.battery_ok,
-    p.battery_left_pct, p.priority, p.history && p.history.recurrence]), busy, S.mission && S.mission.place_id]);
-  $('placesSub').textContent = S.places.length ? t('placesSub', S.places.length) : '';
+    p.battery_left_pct, p.priority, p.history && p.history.recurrence, !!p.static_source]), busy, S.mission && S.mission.place_id]);
+  $('placesSub').textContent = S.places.length ? (S.demo ? t('placesSubDemo', S.places.length) : t('placesSub', S.places.length)) : '';
   if (key === lastPlacesKey) return;
   lastPlacesKey = key;
   const ae = document.activeElement, focusedId = ae && ae.dataset ? ae.dataset.id : null, focusedKind = ae && ae.dataset ? ae.dataset.kind : null;
@@ -809,7 +971,8 @@ function renderPlaces() {
     const active = S.mission && S.mission.place_id === p.id && busy;
     const where = p.base_id ? t('base', esc(bn(p.base_name)), fmt(p.dist_km, 1)) : t('outRange');
     let btn = '', note = '';
-    if (p.status === 'out_of_range') btn = `<button class="btn" type="button" disabled>${esc(t('noBase'))}</button>`;
+    if (p.status === 'industrial') btn = `<button class="btn" type="button" disabled>${esc(t('industrialBtn'))}</button>`;
+    else if (p.status === 'out_of_range') btn = `<button class="btn" type="button" disabled>${esc(t('noBase'))}</button>`;
     else if (active) btn = `<button class="btn" type="button" disabled>${esc(t('alreadyFlying'))}</button>`;
     else if (p.battery_ok === false) {
       btn = `<button class="btn" type="button" disabled>${esc(t('noBattery'))}</button>`;
@@ -818,7 +981,9 @@ function renderPlaces() {
     const verdict = p.verdict ? `<span class="v" style="color:${p.verdict.color}">${esc(vt(p.verdict))}</span>`
       : `<span class="m">${esc(t('st')[p.status] || '')}</span>`;
     const h = p.history, badges = [];
-    if (p.priority === 'high' || p.priority === 'low') badges.push(`<span class="badge ${p.priority}">${esc(t('prio')[p.priority])}</span>`);
+    if (p.static_source) badges.push(`<span class="badge ind">${esc(t('industrial'))}</span>`);
+    if (p.risk) badges.push(`<span class="badge" title="${esc(t('lyUnc'))}: ±${fmt(p.risk.unc * 100, 0)}%">${esc(t('riskBadge', fmt(p.risk.risk * 100, 0), fmt(p.risk.unc * 100, 0)))}</span>`);
+    if (p.priority === 'high' || (p.priority === 'low' && !p.static_source)) badges.push(`<span class="badge ${p.priority}">${esc(t('prio')[p.priority])}</span>`);
     if (h && h.recurrence) badges.push(`<span class="badge ${h.recurrence}" title="${esc(h.fire_days ? t('histDetail', h.fire_days, h.years) : '')}">${esc(t('hist')[h.recurrence])}${h.fire_days ? ': ' + esc(t('histDetail', h.fire_days, h.years)) : ''}</span>`);
     return `<li class="place${active ? ' active' : ''}">
       <span class="dot${p.confirmed ? ' c' : ''}"${p.verdict ? ` style="background:${p.verdict.color}"` : ''}></span>
@@ -841,7 +1006,7 @@ function renderLog() {
   if (key === lastLogKey) return; lastLogKey = key;
   $('log').innerHTML = log.slice(0, 12).map(l => {
     const title = LANG === 'en' ? (l.title_en || I18N.en.verdictTitle[l.label] || EN_TITLE_BY_UA[l.title] || l.title) : l.title;
-    return `<li><time>${esc(l.at)}</time><b style="color:${esc(l.color)}">${esc(title)}</b><span class="c">${Math.round((l.confidence || 0) * 100)}%</span>
+    return `<li><time>${esc(l.at)}</time><b style="color:${esc(l.color)}">${esc(title)}</b><span class="c">${esc((t('byWho') || {})[l.by] || '')}</span>
       <span class="m">${esc(t('logBase', bn(l.base_name)))} · ${esc(t('logLine', fmt(l.flight_min), fmt(l.battery_end_pct)))}</span></li>`;
   }).join('');
 }
@@ -993,8 +1158,43 @@ async function loadCalendar() {
   }
 }
 
+let newBases = null, riskLayer = null, LAYER = 'hist', RISK_M = new Date().getMonth() === 10 || new Date().getMonth() === 11 ? 3 : new Date().getMonth() + 1;
+function riskColor(v, unc) {  // v 0..1
+  const a = unc ? [[157,183,232],[90,63,160]] : [[242,208,107],[228,87,46]];
+  const k = Math.max(0, Math.min(1, v)); return `rgb(${a[0].map((c, i) => Math.round(c + (a[1][i] - c) * k)).join(',')})`;
+}
+function drawRisk() {
+  if (riskLayer) { map.removeLayer(riskLayer); riskLayer = null; }
+  if (MODE !== 'calendar' || LAYER === 'hist' || !CAL || !CAL.risk) return;
+  const mo = CAL.risk.months[RISK_M - 1]; if (!mo) return;
+  const maxR = Math.max(.05, ...mo.cells.map(c => c.risk)), maxU = Math.max(.02, ...mo.cells.map(c => c.unc));
+  riskLayer = L.layerGroup(mo.cells.map(c => {
+    const v = LAYER === 'risk' ? c.risk / maxR : c.unc / maxU;
+    return L.circleMarker([c.lat, c.lon], {radius: 3 + 6 * v, stroke:false, fillColor: riskColor(v, LAYER === 'unc'), fillOpacity:.35 + .5 * v})
+      .bindTooltip(t('riskTip', fmt(c.risk * 100, 0), fmt(c.unc * 100, 0)), {className:'tag', direction:'top', offset:[0,-4]});
+  })).addTo(map);
+}
+function renderRisk() {
+  const K = CAL.risk; $('riskBox').hidden = !K; if (!K) return;
+  const ml = t('months');
+  const html = ml.map((m, i) => `<button type="button" data-m="${i + 1}" aria-pressed="${i + 1 === RISK_M}">${esc(m)}</button>`).join('');
+  if ($('riskMonths').innerHTML !== html) $('riskMonths').innerHTML = html;
+  document.querySelectorAll('#layerSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === LAYER));
+  const m = K.metrics;
+  $('riskCheck').innerHTML = `
+    <div><span>${t('rAuc')}</span><b>${fmt(m.rf_roc_auc, 2)}</b><span>${esc(t('rBase', fmt(m.baseline_roc_auc, 2)))}</span></div>
+    <div><span>${t('rCap')}</span><b>${fmt(m.rf_capture_top5pct * 100, 0)}%</b><span>${esc(t('rBase', fmt(m.baseline_capture_top5pct * 100, 0) + '%'))}</span></div>
+    <p>${esc(t('rText', m))}</p>`;
+}
+$('riskMonths').addEventListener('click', e => { const b = e.target.closest('button[data-m]'); if (!b) return;
+  RISK_M = +b.dataset.m; if (LAYER === 'hist') LAYER = 'risk'; renderRisk(); applyLayer(); });
+document.querySelectorAll('#layerSeg button').forEach(b => b.onclick = () => { LAYER = b.dataset.v; renderRisk(); applyLayer(); });
+function applyLayer() {
+  if (cellsLayer) { if (LAYER === 'hist' && MODE === 'calendar') cellsLayer.addTo(map); else map.removeLayer(cellsLayer); }
+  drawRisk(); renderLegend();
+}
 function showCells(on) {
-  if (!on) { if (cellsLayer) map.removeLayer(cellsLayer); return; }
+  if (!on) { if (cellsLayer) map.removeLayer(cellsLayer); if (newBases) map.removeLayer(newBases); if (riskLayer) { map.removeLayer(riskLayer); riskLayer = null; } return; }
   if (!CAL || !CAL.cells) return;
   if (!cellsLayer || cellsLayer._lang !== LANG) {
     if (cellsLayer) map.removeLayer(cellsLayer);
@@ -1007,6 +1207,16 @@ function showCells(on) {
     cellsLayer._lang = LANG;
   }
   cellsLayer.addTo(map);
+  if (CAL.planning && (!newBases || newBases._lang !== LANG)) {
+    if (newBases) map.removeLayer(newBases);
+    newBases = L.layerGroup(CAL.planning.proposed_bases.flatMap(c => [
+      L.circle([c.lat, c.lon], {radius:CAL.planning.radius_km * 1000, color:'#7FB069', weight:1.5, dashArray:'4 6', fill:false, interactive:false}),
+      L.marker([c.lat, c.lon], {icon:divIcon('<div class="newbase"></div>', 20), keyboard:false})
+        .bindTooltip(t('pCand', c.lat.toFixed(3), c.lon.toFixed(3), c.adds_hotspots, fmt(c.adds_share * 100, 0)), {className:'tag', direction:'top', offset:[0,-8]})]));
+    newBases._lang = LANG;
+  }
+  if (newBases) newBases.addTo(map);
+  applyLayer();
   if (CAL.bbox) { const [w, s, e, n] = CAL.bbox; fitPts([[s, w], [n, e]], 10); }
 }
 
@@ -1145,14 +1355,32 @@ function renderCheck() {
     <div><span>${t('vR2')}</span><b>${fmt(v.yearly_r2 ?? v.r2, 2)}</b></div>
     <div><span>${t('vPairs')}</span><b>${p.match_rate != null ? fmt(p.match_rate * (p.match_rate <= 1 ? 100 : 1), 0) + '%' : '—'}</b></div>
     <div><span>${t('vRatio')}</span><b>${fmt(p.viirs_per_modis, 1)}</b></div>
-    <p>${esc(t('vText', {validation:{method:v.method, n:v.n ?? '—'}, pairs:{median_offset_m:fmt(p.median_offset_m)}}))}</p>`;
+    <p>${esc(t('vText', {validation:{method:v.method, n:v.n ?? '—'}, pairs:{median_offset_m:fmt(p.median_offset_m)}}))}</p>`
+    + (CAL.correlation ? `
+    <div><span>${t('vCorrM')}</span><b>${fmt(CAL.correlation.monthly_series.pearson, 2)}</b></div>
+    <div><span>${t('vCorrY')}</span><b>${fmt(CAL.correlation.yearly.pearson, 2)}</b></div>
+    <div><span>${t('vCorrS')}</span><b>${fmt(CAL.correlation.spatial_0_1deg.pearson, 2)}</b></div>
+    <div><span>Spearman ρ</span><b>${fmt(CAL.correlation.spatial_0_1deg.spearman, 2)}</b></div>
+    <p>${esc(t('vCorrText', CAL.correlation))}</p>` : '');
+}
+function renderPlan() {
+  const P = CAL.planning; $('planBox').hidden = !P; if (!P) return;
+  const pc = x => fmt(x * 100, 0) + '%';
+  $('plan').innerHTML = `
+    <div><span>${t('pCov')}</span><b>${pc(P.covered_share)}</b></div>
+    <div><span>${t('pRep')}</span><b>${pc(P.repeat_cells_covered_share)}</b></div>
+    <div><span>${t('pSpring')}</span><b>${pc(P.spring_share)}</b></div>
+    <div><span>${t('pNew')}</span><b>${pc(P.covered_share_with_proposed)}</b></div>
+    <p>${esc(t('pNote'))}</p>`;
+  $('planList').innerHTML = P.per_base.slice(0, 3).map(b => `<li>${esc(t('pBase', bn(b.name), b.hotspots, fmt(b.spring_share * 100, 0)))}</li>`).join('')
+    + P.proposed_bases.map(c => `<li>${esc(t('pCand', c.lat.toFixed(3), c.lon.toFixed(3), c.adds_hotspots, fmt(c.adds_share * 100, 0)))}</li>`).join('');
 }
 function renderCalendar() {
   if (!CAL) return;
   $('calEmpty').hidden = true; $('calBody').hidden = false;
   const ys = CAL.monthly.map(m => +m.ym.slice(0, 4));
   $('calLead').textContent = t('calLead', Math.min(...ys), Math.max(...ys));
-  chartYears(); chartHeat(); chartClim(); renderCheck();
+  chartYears(); chartHeat(); chartClim(); renderCheck(); renderRisk(); renderPlan();
   const ins = (LANG === 'en' && CAL.insights_en) || CAL.insights || [];
   $('insights').innerHTML = ins.map(s => `<li>${esc(s)}</li>`).join('');
 }
